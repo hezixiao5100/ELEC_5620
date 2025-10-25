@@ -1,88 +1,55 @@
 """
-Report API Routes
+Report Management API Routes
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
-# TODO: Import database dependency
-# from app.database import get_db
-
-# TODO: Import dependencies
-# from app.api.deps import get_current_user
-
-# TODO: Import schemas
-# from app.schemas.report import ReportResponse, ReportRequest
-
-# TODO: Import services
-# from app.services.report_service import ReportService
+from app.database import get_db
+from app.schemas.report import Report, ReportRequest, ReportSummary
+from app.services.report_service import ReportService
 
 router = APIRouter()
 
-@router.post("/generate", response_model=None, status_code=status.HTTP_201_CREATED)
+@router.post("/generate", response_model=Report)
 async def generate_report(
-    # request: ReportRequest,
-    # current_user = Depends(get_current_user),
-    # db: Session = Depends(get_db)
+    request: ReportRequest,
+    db: Session = Depends(get_db)
 ):
     """
-    Generate analysis report for a specific stock
+    Generate a new analysis report
     """
-    # TODO: Call AgentManager to generate report
-    # TODO: Save report to database
-    # TODO: Return report
-    pass
+    try:
+        report_service = ReportService(db)
+        report = await report_service.generate_report(request.stock_id, request.report_type)
+        return report
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/", response_model=None)
+@router.get("/", response_model=List[Report])
 async def get_user_reports(
-    # current_user = Depends(get_current_user),
-    # db: Session = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """
     Get all reports for current user
     """
-    # TODO: Call ReportService to get user reports
-    # TODO: Return list of reports
-    pass
+    try:
+        report_service = ReportService(db)
+        reports = await report_service.get_user_reports()
+        return reports
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/{report_id}", response_model=None)
-async def get_report(
-    report_id: int,
-    # current_user = Depends(get_current_user),
-    # db: Session = Depends(get_db)
+@router.get("/summary", response_model=ReportSummary)
+async def get_report_summary(
+    db: Session = Depends(get_db)
 ):
     """
-    Get specific report by ID
+    Get report summary statistics
     """
-    # TODO: Call ReportService to get report
-    # TODO: Verify user has access to report
-    # TODO: Return report details
-    pass
-
-@router.get("/stock/{symbol}", response_model=None)
-async def get_stock_reports(
-    symbol: str,
-    # current_user = Depends(get_current_user),
-    # db: Session = Depends(get_db)
-):
-    """
-    Get all reports for a specific stock
-    """
-    # TODO: Call ReportService to get stock reports
-    # TODO: Return list of reports
-    pass
-
-@router.delete("/{report_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_report(
-    report_id: int,
-    # current_user = Depends(get_current_user),
-    # db: Session = Depends(get_db)
-):
-    """
-    Delete a report
-    """
-    # TODO: Verify user owns the report
-    # TODO: Delete report from database
-    pass
-
-
+    try:
+        report_service = ReportService(db)
+        summary = await report_service.get_report_summary()
+        return summary
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))

@@ -5,93 +5,106 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
-# TODO: Import database dependency
-# from app.database import get_db
-
-# TODO: Import dependencies
-# from app.api.deps import get_current_user
-
-# TODO: Import schemas
-# from app.schemas.stock import StockResponse, TrackStockRequest, StockDataResponse
-
-# TODO: Import services
-# from app.services.stock_service import StockService
+from app.database import get_db
+from app.schemas.stock import Stock, StockCreate, StockData, TrackStockRequest, TrackedStock
+from app.services.stock_service import StockService
 
 router = APIRouter()
 
 @router.post("/track", status_code=status.HTTP_201_CREATED)
 async def track_stock(
-    # request: TrackStockRequest,
-    # current_user = Depends(get_current_user),
-    # db: Session = Depends(get_db)
+    request: TrackStockRequest,
+    db: Session = Depends(get_db)
 ):
     """
     Add a stock to user's tracking list
     """
-    # TODO: Call StockService to add stock to tracking
-    # TODO: Return success message
-    pass
+    try:
+        stock_service = StockService(db)
+        result = await stock_service.track_stock(request.symbol, request.custom_alert_threshold)
+        return {"message": f"Successfully tracking {request.symbol}", "data": result}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.delete("/track/{symbol}")
 async def untrack_stock(
     symbol: str,
-    # current_user = Depends(get_current_user),
-    # db: Session = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """
     Remove a stock from user's tracking list
     """
-    # TODO: Call StockService to remove stock from tracking
-    # TODO: Return success message
-    pass
+    try:
+        stock_service = StockService(db)
+        await stock_service.untrack_stock(symbol)
+        return {"message": f"Successfully stopped tracking {symbol}"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/tracked", response_model=None)
+@router.get("/tracked", response_model=List[TrackedStock])
 async def get_tracked_stocks(
-    # current_user = Depends(get_current_user),
-    # db: Session = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """
     Get all stocks tracked by current user
     """
-    # TODO: Call StockService to get tracked stocks
-    # TODO: Return list of stocks
-    pass
+    try:
+        stock_service = StockService(db)
+        stocks = await stock_service.get_tracked_stocks()
+        return stocks
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/{symbol}", response_model=None)
+@router.get("/{symbol}", response_model=Stock)
 async def get_stock_info(
     symbol: str,
-    # db: Session = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """
     Get stock information by symbol
     """
-    # TODO: Call StockService to get stock info
-    # TODO: Return stock details
-    pass
+    try:
+        stock_service = StockService(db)
+        stock = await stock_service.get_stock_by_symbol(symbol)
+        if not stock:
+            raise HTTPException(status_code=404, detail="Stock not found")
+        return stock
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/{symbol}/data", response_model=None)
+@router.get("/{symbol}/data", response_model=List[StockData])
 async def get_stock_data(
     symbol: str,
-    # period: str = "1d",  # 1d, 1w, 1m, 3m, 1y
-    # db: Session = Depends(get_db)
+    period: str = "1d",  # 1d, 1w, 1m, 3m, 1y
+    db: Session = Depends(get_db)
 ):
     """
     Get historical stock price data
     """
-    # TODO: Call StockService to get stock data
-    # TODO: Return price history
-    pass
+    try:
+        stock_service = StockService(db)
+        data = await stock_service.get_stock_data(symbol, period)
+        return data
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/search/{query}", response_model=None)
+@router.get("/search/{query}")
 async def search_stocks(
     query: str,
-    # db: Session = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """
     Search for stocks by symbol or name
     """
-    # TODO: Call StockService to search stocks
-    # TODO: Return search results
-    pass
+    try:
+        stock_service = StockService(db)
+        results = await stock_service.search_stocks(query)
+        return {"query": query, "results": results}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 
 

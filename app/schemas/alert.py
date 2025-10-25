@@ -4,32 +4,45 @@ Alert Schemas
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
+from app.models.alert import AlertType, AlertStatus
 
-# TODO: Define AlertBase schema
-# class AlertBase(BaseModel):
-#     stock_id: int
-#     alert_type: str
-#     threshold_value: float
+class AlertBase(BaseModel):
+    """Base alert schema"""
+    stock_id: int
+    alert_type: AlertType
+    threshold_value: float
 
-# TODO: Define AlertCreate schema
-# class AlertCreate(AlertBase):
-#     pass
+class AlertCreate(AlertBase):
+    """Schema for creating a new alert"""
+    pass
 
-# TODO: Define AlertResponse schema
-# class AlertResponse(AlertBase):
-#     id: int
-#     user_id: int
-#     current_value: Optional[float]
-#     message: str
-#     status: str
-#     triggered_at: Optional[datetime]
-#     created_at: datetime
-#     
-#     class Config:
-#         from_attributes = True
+class AlertUpdate(BaseModel):
+    """Schema for updating alert"""
+    status: Optional[AlertStatus] = None
+    current_value: Optional[float] = None
+    message: Optional[str] = None
 
-# TODO: Define AlertUpdate schema
-# class AlertUpdate(BaseModel):
-#     status: Optional[str] = None
+class Alert(AlertBase):
+    """Schema for alert response"""
+    id: int
+    user_id: int
+    current_value: Optional[float]
+    message: str
+    status: AlertStatus
+    triggered_at: Optional[datetime]
+    acknowledged_at: Optional[datetime]
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+class AlertSummary(BaseModel):
+    """Schema for alert summary"""
+    total_alerts: int
+    pending_alerts: int
+    triggered_alerts: int
+    acknowledged_alerts: int
+
+
 
 

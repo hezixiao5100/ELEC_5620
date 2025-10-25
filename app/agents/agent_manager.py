@@ -4,13 +4,15 @@ Coordinates and orchestrates all sub-agents
 """
 from typing import Dict, Any, List
 from sqlalchemy.orm import Session
+import asyncio
+import logging
+from datetime import datetime
 
-# TODO: Import all agents
-# from app.agents.data_collection_agent import DataCollectionAgent
-# from app.agents.risk_analysis_agent import RiskAnalysisAgent
-# from app.agents.analysis_agent import AnalysisAgent
-# from app.agents.emotional_analysis_agent import EmotionalAnalysisAgent
-# from app.agents.report_generate_agent import ReportGenerateAgent
+from app.agents.data_collection_agent import DataCollectionAgent
+from app.agents.analysis_agent import AnalysisAgent
+from app.agents.risk_analysis_agent import RiskAnalysisAgent
+from app.agents.emotional_analysis_agent import EmotionalAnalysisAgent
+from app.agents.report_generate_agent import ReportGenerateAgent
 
 class AgentManager:
     """
@@ -25,14 +27,16 @@ class AgentManager:
             db: Database session
         """
         self.db = db
-        # TODO: Initialize all agents
-        # self.agents = {
-        #     "data_collection": DataCollectionAgent("data_collection_agent"),
-        #     "risk_analysis": RiskAnalysisAgent("risk_analysis_agent"),
-        #     "analysis": AnalysisAgent("analysis_agent"),
-        #     "emotional": EmotionalAnalysisAgent("emotional_analysis_agent"),
-        #     "report_generate": ReportGenerateAgent("report_generate_agent")
-        # }
+        self.logger = logging.getLogger("agent_manager")
+        
+        # Initialize all agents
+        self.agents = {
+            "data_collection": DataCollectionAgent("data_collection", db=self.db),
+            "analysis": AnalysisAgent("analysis"),
+            "risk_analysis": RiskAnalysisAgent("risk_analysis"),
+            "emotional_analysis": EmotionalAnalysisAgent("emotional_analysis"),
+            "report_generate": ReportGenerateAgent("report_generate")
+        }
     
     async def run_stock_analysis_pipeline(
         self, 
@@ -49,12 +53,61 @@ class AgentManager:
         Returns:
             Complete analysis result
         """
-        # TODO: 1. Collect data using DataCollectionAgent
-        # TODO: 2. Run parallel analysis with RiskAnalysisAgent, AnalysisAgent, EmotionalAnalysisAgent
-        # TODO: 3. Generate report using ReportGenerateAgent
-        # TODO: 4. Save report to database
-        # TODO: 5. Return analysis result
-        pass
+        try:
+            self.logger.info(f"Starting analysis pipeline for {stock_symbol}")
+            
+            # Step 1: Collect data
+            data_collection_result = await self.agents["data_collection"].run({
+                "symbol": stock_symbol
+            })
+            
+            if "error" in data_collection_result:
+                return {"error": "Data collection failed", "details": data_collection_result}
+            
+            # Step 2: Run parallel analysis
+            analysis_tasks = [
+                self.agents["analysis"].run({
+                    "stock_data": data_collection_result.get("stock_data", {}),
+                    "market_data": data_collection_result.get("market_data", {})
+                }),
+                self.agents["risk_analysis"].run({
+                    "stock_data": data_collection_result.get("stock_data", {}),
+                    "market_data": data_collection_result.get("market_data", {})
+                }),
+                self.agents["emotional_analysis"].run({
+                    "news_data": data_collection_result.get("news_data", []),
+                    "stock_data": data_collection_result.get("stock_data", {})
+                })
+            ]
+            
+            analysis_results = await asyncio.gather(*analysis_tasks, return_exceptions=True)
+            
+            # Step 3: Generate report
+            report_result = await self.agents["report_generate"].run({
+                "symbol": stock_symbol,
+                "data_collection": data_collection_result,
+                "analysis": analysis_results[0] if not isinstance(analysis_results[0], Exception) else {},
+                "risk_analysis": analysis_results[1] if not isinstance(analysis_results[1], Exception) else {},
+                "emotional_analysis": analysis_results[2] if not isinstance(analysis_results[2], Exception) else {}
+            })
+            
+            # Step 4: Save to database (simplified)
+            # In a real system, you would save the report to the database here
+            
+            return {
+                "symbol": stock_symbol,
+                "user_id": user_id,
+                "data_collection": data_collection_result,
+                "analysis": analysis_results[0] if not isinstance(analysis_results[0], Exception) else {"error": str(analysis_results[0])},
+                "risk_analysis": analysis_results[1] if not isinstance(analysis_results[1], Exception) else {"error": str(analysis_results[1])},
+                "emotional_analysis": analysis_results[2] if not isinstance(analysis_results[2], Exception) else {"error": str(analysis_results[2])},
+                "report": report_result,
+                "pipeline_completed_at": datetime.utcnow().isoformat()
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Analysis pipeline failed: {str(e)}")
+            return {"error": "Analysis pipeline failed", "details": str(e)}
     
     async def run_portfolio_analysis(
         self,
@@ -129,5 +182,7 @@ class AgentManager:
         # TODO: Execute agents in appropriate order
         # TODO: Aggregate results
         pass
+
+
 
 

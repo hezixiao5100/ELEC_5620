@@ -86,3 +86,6 @@ stock-analysis-system/
 MIT
 
 
+
+
+

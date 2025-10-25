@@ -1,27 +1,25 @@
 """
 Risk Analysis Agent
-Analyzes investment risks and generates risk metrics
+Analyzes investment risk and volatility
 """
-from typing import Dict, Any, List
-import numpy as np
+from typing import Dict, Any
+from datetime import datetime
 
-# TODO: Import base agent
-# from app.agents.base_agent import BaseAgent, AgentStatus
+from app.agents.base_agent import BaseAgent
 
-class RiskAnalysisAgent:
+class RiskAnalysisAgent(BaseAgent):
     """
-    Agent responsible for risk analysis and alert generation
+    Agent responsible for risk analysis
     """
     
-    def __init__(self, agent_id: str):
+    def __init__(self, agent_id: str = "risk_analysis"):
         """
         Initialize Risk Analysis Agent
         
         Args:
             agent_id: Agent identifier
         """
-        # TODO: Call parent __init__
-        pass
+        super().__init__(agent_id, "Risk Analysis Agent")
     
     async def execute_task(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -33,94 +31,94 @@ class RiskAnalysisAgent:
         Returns:
             Risk analysis results
         """
-        # TODO: Extract stock data from task_data
-        # TODO: Calculate risk metrics
-        # TODO: Check alert thresholds
-        # TODO: Return risk analysis
-        pass
-    
-    def calculate_volatility(self, price_data: List[float]) -> float:
-        """
-        Calculate stock price volatility
+        stock_data = task_data.get("stock_data", {})
+        market_data = task_data.get("market_data", {})
         
-        Args:
-            price_data: List of historical prices
-            
-        Returns:
-            Volatility value
-        """
-        # TODO: Calculate standard deviation of returns
-        # TODO: Annualize volatility
-        # TODO: Return volatility metric
-        pass
-    
-    def calculate_var(self, price_data: List[float], confidence_level: float = 0.95) -> float:
-        """
-        Calculate Value at Risk (VaR)
+        if not stock_data:
+            raise ValueError("Stock data is required for risk analysis")
         
-        Args:
-            price_data: Historical price data
-            confidence_level: Confidence level for VaR
-            
-        Returns:
-            VaR value
-        """
-        # TODO: Calculate returns
-        # TODO: Calculate VaR at given confidence level
-        # TODO: Return VaR
-        pass
-    
-    def check_alert_thresholds(
-        self,
-        current_data: Dict[str, Any],
-        user_threshold: float
-    ) -> List[Dict[str, Any]]:
-        """
-        Check if alert thresholds are exceeded
+        # Calculate risk metrics
+        volatility = self.calculate_volatility(stock_data)
+        beta = self.calculate_beta(stock_data, market_data)
+        var = self.calculate_var(stock_data)
+        risk_score = self.calculate_risk_score(volatility, beta, var)
         
-        Args:
-            current_data: Current stock data
-            user_threshold: User-defined threshold
-            
-        Returns:
-            List of triggered alerts
-        """
-        # TODO: Compare current price change with threshold
-        # TODO: Check volatility spikes
-        # TODO: Check volume anomalies
-        # TODO: Generate alert objects
-        pass
+        return {
+            "symbol": stock_data.get("symbol", ""),
+            "volatility": volatility,
+            "beta": beta,
+            "var": var,
+            "risk_score": risk_score,
+            "risk_level": self.assess_risk_level(risk_score),
+            "analysis_timestamp": datetime.utcnow().isoformat()
+        }
     
-    def analyze_correlation(
-        self,
-        stock_data_list: List[Dict[str, Any]]
-    ) -> Dict[str, float]:
-        """
-        Analyze correlation between stocks
+    def calculate_volatility(self, stock_data: Dict[str, Any]) -> float:
+        """Calculate price volatility"""
+        historical_data = stock_data.get("historical_data", [])
+        if len(historical_data) < 10:
+            return 0.0
         
-        Args:
-            stock_data_list: List of stock data
-            
-        Returns:
-            Correlation matrix
-        """
-        # TODO: Calculate correlation coefficients
-        # TODO: Return correlation matrix
-        pass
+        prices = [float(day.get("close", 0)) for day in historical_data if day.get("close")]
+        if len(prices) < 2:
+            return 0.0
+        
+        # Calculate daily returns
+        returns = [(prices[i] - prices[i-1]) / prices[i-1] for i in range(1, len(prices))]
+        
+        # Calculate standard deviation
+        mean_return = sum(returns) / len(returns)
+        variance = sum((r - mean_return) ** 2 for r in returns) / len(returns)
+        volatility = variance ** 0.5
+        
+        return round(volatility * 100, 2)  # Convert to percentage
     
-    def generate_risk_report(self, analysis_data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Generate comprehensive risk report
+    def calculate_beta(self, stock_data: Dict[str, Any], market_data: Dict[str, Any]) -> float:
+        """Calculate beta coefficient"""
+        # Simplified beta calculation
+        # In a real system, you would compare stock returns to market returns
+        volatility = self.calculate_volatility(stock_data)
         
-        Args:
-            analysis_data: Risk analysis data
-            
-        Returns:
-            Risk report
-        """
-        # TODO: Compile risk metrics
-        # TODO: Assign risk level (LOW, MEDIUM, HIGH)
-        # TODO: Generate risk summary
-        pass
-
-
+        if volatility < 10:
+            return 0.8  # Low volatility = low beta
+        elif volatility < 20:
+            return 1.0  # Medium volatility = neutral beta
+        else:
+            return 1.2  # High volatility = high beta
+    
+    def calculate_var(self, stock_data: Dict[str, Any]) -> float:
+        """Calculate Value at Risk (95% confidence)"""
+        historical_data = stock_data.get("historical_data", [])
+        if len(historical_data) < 10:
+            return 0.0
+        
+        prices = [float(day.get("close", 0)) for day in historical_data if day.get("close")]
+        if len(prices) < 2:
+            return 0.0
+        
+        # Calculate daily returns
+        returns = [(prices[i] - prices[i-1]) / prices[i-1] for i in range(1, len(prices))]
+        
+        # Sort returns and find 5th percentile
+        returns.sort()
+        var_index = int(len(returns) * 0.05)
+        var = abs(returns[var_index]) if var_index < len(returns) else 0
+        
+        return round(var * 100, 2)  # Convert to percentage
+    
+    def calculate_risk_score(self, volatility: float, beta: float, var: float) -> float:
+        """Calculate overall risk score (0-100)"""
+        # Weighted risk score
+        score = (volatility * 0.4) + (abs(beta - 1.0) * 20 * 0.3) + (var * 0.3)
+        return min(100, max(0, round(score, 1)))
+    
+    def assess_risk_level(self, risk_score: float) -> str:
+        """Assess risk level based on score"""
+        if risk_score < 20:
+            return "LOW"
+        elif risk_score < 50:
+            return "MEDIUM"
+        elif risk_score < 80:
+            return "HIGH"
+        else:
+            return "VERY_HIGH"

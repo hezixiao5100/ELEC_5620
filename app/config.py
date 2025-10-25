@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
     # External APIs
-    STOCK_API_KEY: Optional[str] = Token
+    STOCK_API_KEY: Optional[str] = None
     NEWS_API_KEY: Optional[str] = None
     OPENAI_API_KEY: Optional[str] = None
     OPENAI_MODEL: Optional[str] = "gpt-3.5-turbo"
@@ -36,7 +36,7 @@ class Settings(BaseSettings):
         env_file = ".env"
         case_sensitive = True
 
-# TODO: Create global settings instance
-# settings = Settings()
+# Create global settings instance
+settings = Settings()
 
 

@@ -4,31 +4,44 @@ User Schemas
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 from datetime import datetime
+from app.models.user import UserRole
 
-# TODO: Define UserBase schema
-# class UserBase(BaseModel):
-#     username: str
-#     email: EmailStr
+class UserBase(BaseModel):
+    """Base user schema"""
+    username: str
+    email: EmailStr
+    role: UserRole = UserRole.INVESTOR
+    alert_threshold: float = -5.0
 
-# TODO: Define UserCreate schema (for registration)
-# class UserCreate(UserBase):
-#     password: str
-#     role: str = "investor"
+class UserCreate(UserBase):
+    """Schema for creating a new user"""
+    password: str
 
-# TODO: Define UserUpdate schema
-# class UserUpdate(BaseModel):
-#     email: Optional[EmailStr] = None
-#     alert_threshold: Optional[float] = None
+class UserUpdate(BaseModel):
+    """Schema for updating user information"""
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None
+    alert_threshold: Optional[float] = None
 
-# TODO: Define UserResponse schema (what API returns)
-# class UserResponse(UserBase):
-#     id: int
-#     role: str
-#     alert_threshold: float
-#     created_at: datetime
-#     last_login: Optional[datetime]
-#     
-#     class Config:
-#         from_attributes = True
+class UserInDB(UserBase):
+    """Schema for user data in database"""
+    id: int
+    is_active: str
+    created_at: datetime
+    last_login: Optional[datetime] = None
+    
+    class Config:
+        from_attributes = True
+
+class User(UserInDB):
+    """Schema for user response"""
+    pass
+
+class UserLogin(BaseModel):
+    """Schema for user login"""
+    username: str
+    password: str
+
+
 
 
