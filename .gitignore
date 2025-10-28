@@ -1,0 +1,104 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+env/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Build outputs
+dist/
+dist-ssr/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Database
+*.db
+*.sqlite
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test files
+test_*.py
+*_test.py
+tests/
+test/
+test_auth.html
+
+# Documentation files
+*.md
+docs/
+README.md
+ARCHITECTURE.md
+PROJECT_STRUCTURE.md
+DEVELOPMENT_GUIDE.md
+QUICK_START.md
+
+# Celery beat schedule files
+celerybeat-schedule*
+celerybeat-schedule-shm
+celerybeat-schedule-wal
+
+# Backup files
+*.backup
+.env.backup
+
+# Demo and setup files
+demo_*.py
+setup_*.py
+init_*.py
+docker_*.sh
+start.sh
+
+# Temporary files
+*.tmp
+*.temp
+
+# Archives
+*.zip
+*.tar.gz
+*.rar
