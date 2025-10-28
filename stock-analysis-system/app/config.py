@@ -1,6 +1,5 @@
 from pydantic_settings import BaseSettings
 from typing import Optional
-import os
 
 class Settings(BaseSettings):
     # Database Configuration
@@ -39,17 +38,5 @@ class Settings(BaseSettings):
         env_file = ".env"
         case_sensitive = True
 
-# Create settings instance
+# Create settings instance - automatically loads from .env file
 settings = Settings()
-
-# Override with environment variables if they exist
-if os.getenv("DATABASE_URL"):
-    settings.DATABASE_URL = os.getenv("DATABASE_URL")
-if os.getenv("SECRET_KEY"):
-    settings.SECRET_KEY = os.getenv("SECRET_KEY")
-if os.getenv("OPENAI_API_KEY"):
-    settings.OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-if os.getenv("NEWS_API_KEY"):
-    settings.NEWS_API_KEY = os.getenv("NEWS_API_KEY")
-if os.getenv("STOCK_API_KEY"):
-    settings.STOCK_API_KEY = os.getenv("STOCK_API_KEY")
