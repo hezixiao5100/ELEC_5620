@@ -61,3 +61,4 @@ class PortfolioSummary(BaseModel):
     active_alerts: int = 0
 
 
+

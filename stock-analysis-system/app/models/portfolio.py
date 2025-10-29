@@ -55,3 +55,4 @@ class Portfolio(Base):
         return self.quantity * self.purchase_price
 
 
+
