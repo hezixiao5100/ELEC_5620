@@ -18,10 +18,10 @@ logger = logging.getLogger(__name__)
 def check_price_alerts(self):
     """
     Check for price alerts and trigger notifications
-    Runs every 5 minutes
+    Runs every 1 minute with cumulative trigger count mechanism
     """
     try:
-        logger.info("Starting price alert checking task")
+        logger.info("🔥 NEW VERSION: Starting price alert checking task with cumulative trigger_count logic 🔥")
         
         db = SessionLocal()
         try:
@@ -173,6 +173,10 @@ def check_price_alerts(self):
                     
                     # Update current value for next check
                     alert.current_value = current_price
+                    
+                    # IMPORTANT: Commit changes to database after each alert check
+                    db.commit()
+                    
                     alerts_checked += 1
                     
                 except Exception as e:

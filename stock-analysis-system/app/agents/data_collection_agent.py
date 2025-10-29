@@ -77,9 +77,16 @@ class DataCollectionAgent(BaseAgent):
                     if historical_data:
                         self.store_stock_data(historical_data, stock_id)
                     
-                    self.logger.info(f"Successfully stored data for {symbol}")
+                    # Commit the transaction
+                    if self.db:
+                        self.db.commit()
+                        self.logger.info(f"Successfully stored and committed data for {symbol}")
+                    else:
+                        self.logger.info(f"Successfully stored data for {symbol} (no db session)")
                 
             except Exception as e:
+                if self.db:
+                    self.db.rollback()
                 self.logger.error(f"Failed to store data for {symbol}: {str(e)}")
         
         return {

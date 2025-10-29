@@ -66,6 +66,9 @@ class TrackStockRequest(BaseModel):
     """Schema for tracking a stock"""
     symbol: str
     custom_alert_threshold: Optional[float] = None
+    # Optional portfolio information
+    quantity: Optional[float] = None  # Number of shares purchased
+    purchase_price: Optional[float] = None  # Purchase price per share
 
 class TrackedStock(BaseModel):
     """Schema for tracked stock response"""
@@ -74,9 +77,12 @@ class TrackedStock(BaseModel):
     stock_id: int
     stock: Stock
     custom_alert_threshold: Optional[float]
-    is_active: bool
+    is_active: str  # "Y" or "N"
     created_at: datetime
     updated_at: datetime
+    
+    # Portfolio information (if exists)
+    portfolio: Optional[dict] = None  # Will include quantity, purchase_price, profit_loss, etc.
     
     class Config:
         from_attributes = True

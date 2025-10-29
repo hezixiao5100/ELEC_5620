@@ -62,15 +62,27 @@ export interface StockData {
   adjusted_close?: number;
 }
 
+export interface Portfolio {
+  id: number;
+  quantity: number;
+  purchase_price: number;
+  purchase_date: string;
+  current_value: number;
+  cost_basis: number;
+  profit_loss: number;
+  profit_loss_pct: number;
+}
+
 export interface TrackedStock {
   id: number;
   user_id: number;
   stock_id: number;
   stock: Stock;
   custom_alert_threshold?: number;
-  is_active: boolean;
+  is_active: string;  // "Y" or "N"
   created_at: string;
   updated_at: string;
+  portfolio?: Portfolio | null;  // Portfolio information if exists
 }
 
 // Alert Types
@@ -95,6 +107,14 @@ export interface Alert {
   alert_type: AlertType;
   threshold_value?: number;
   current_value?: number;
+  trigger_count?: number;  // Cumulative trigger count
+  trigger_history?: Array<{  // History of trigger events
+    timestamp: string;
+    price: number;
+    change_percent: number;
+    baseline_price: number;
+  }>;
+  required_triggers?: number;  // How many triggers needed to fire alert
   message: string;
   status: AlertStatus;
   triggered_at?: string;

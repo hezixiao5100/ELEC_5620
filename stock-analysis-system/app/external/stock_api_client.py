@@ -43,11 +43,14 @@ class StockAPIClient:
             
             return {
                 "symbol": symbol,
+                "name": info.get('longName', info.get('shortName', f"{symbol} Company")),
                 "price": float(current_price),
                 "volume": int(volume),
                 "market_cap": info.get('marketCap', 0),
                 "currency": info.get('currency', 'USD'),
                 "exchange": info.get('exchange', 'NASDAQ'),
+                "sector": info.get('sector', 'Unknown'),
+                "industry": info.get('industry', 'Unknown'),
                 "last_updated": datetime.utcnow().isoformat()
             }
         except Exception as e:

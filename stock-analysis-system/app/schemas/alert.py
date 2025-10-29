@@ -28,6 +28,9 @@ class Alert(AlertBase):
     id: int
     user_id: int
     current_value: Optional[float]
+    trigger_count: Optional[int] = 0
+    trigger_history: Optional[list] = None
+    required_triggers: Optional[int] = 5
     message: str
     status: AlertStatus
     triggered_at: Optional[datetime]

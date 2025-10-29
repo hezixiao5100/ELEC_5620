@@ -22,15 +22,22 @@ export const stockService = {
 
   // Get tracked stocks
   getTrackedStocks: async (): Promise<TrackedStock[]> => {
-    const response = await api.get('/portfolio/tracked');
+    const response = await api.get('/stocks/tracked');
     return response.data;
   },
 
   // Track a stock
-  trackStock: async (symbol: string, customThreshold?: number): Promise<TrackedStock> => {
+  trackStock: async (
+    symbol: string, 
+    customThreshold?: number,
+    quantity?: number,
+    purchasePrice?: number
+  ): Promise<TrackedStock> => {
     const response = await api.post('/stocks/track', {
       symbol,
       custom_alert_threshold: customThreshold,
+      quantity,
+      purchase_price: purchasePrice,
     });
     return response.data;
   },
@@ -66,6 +73,20 @@ export const stockService = {
   getPortfolioSummary: async (): Promise<any> => {
     const response = await api.get('/portfolio/summary');
     return response.data;
+  },
+
+  // Update portfolio holding
+  updatePortfolio: async (
+    symbol: string,
+    quantity: number,
+    purchasePrice: number
+  ): Promise<void> => {
+    await api.put(`/stocks/track/${symbol}/portfolio`, null, {
+      params: {
+        quantity,
+        purchase_price: purchasePrice
+      }
+    });
   },
 };
 

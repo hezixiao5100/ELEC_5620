@@ -221,7 +221,14 @@ class StockService:
         ).all()
     
     
-    async def track_stock(self, symbol: str, user_id: int, custom_alert_threshold: Optional[float] = None) -> Dict[str, Any]:
+    async def track_stock(
+        self, 
+        symbol: str, 
+        user_id: int, 
+        custom_alert_threshold: Optional[float] = None,
+        quantity: Optional[float] = None,
+        purchase_price: Optional[float] = None
+    ) -> Dict[str, Any]:
         """
         Track a stock for a user
         
@@ -247,6 +254,8 @@ class StockService:
                 stock = StockModel(
                     symbol=symbol.upper(),
                     name=stock_data.get("name", f"{symbol} Company"),
+                    sector=stock_data.get("sector", "Unknown"),
+                    industry=stock_data.get("industry", "Unknown"),
                     current_price=stock_data.get("price", 0),
                     currency=stock_data.get("currency", "USD"),
                     exchange=stock_data.get("exchange", "NASDAQ"),
@@ -310,6 +319,40 @@ class StockService:
             )
             self.db.add(alert)
             
+            # Create portfolio entry if quantity and purchase_price are provided
+            portfolio_id = None
+            if quantity is not None and purchase_price is not None:
+                from app.models.portfolio import Portfolio as PortfolioModel
+                
+                # Check if portfolio entry already exists
+                existing_portfolio = self.db.query(PortfolioModel).filter(
+                    and_(
+                        PortfolioModel.user_id == user_id,
+                        PortfolioModel.stock_id == stock.id
+                    )
+                ).first()
+                
+                if existing_portfolio:
+                    # Update existing portfolio
+                    existing_portfolio.quantity = quantity
+                    existing_portfolio.purchase_price = purchase_price
+                    existing_portfolio.updated_at = datetime.utcnow()
+                    portfolio_id = existing_portfolio.id
+                    self.logger.info(f"Updated portfolio for {symbol}: {quantity} shares @ ${purchase_price}")
+                else:
+                    # Create new portfolio entry
+                    portfolio = PortfolioModel(
+                        user_id=user_id,
+                        stock_id=stock.id,
+                        quantity=quantity,
+                        purchase_price=purchase_price,
+                        purchase_date=datetime.utcnow()
+                    )
+                    self.db.add(portfolio)
+                    self.db.flush()  # Get the ID
+                    portfolio_id = portfolio.id
+                    self.logger.info(f"Created portfolio for {symbol}: {quantity} shares @ ${purchase_price}")
+            
             self.db.commit()
             
             self.logger.info(f"Created price drop alert for {symbol} with threshold {threshold}%")
@@ -319,6 +362,7 @@ class StockService:
                 "stock_id": stock.id,
                 "custom_alert_threshold": custom_alert_threshold,
                 "alert_id": alert.id,
+                "portfolio_id": portfolio_id,
                 "tracked_at": datetime.utcnow().isoformat(),
                 "status": "tracking"
             }
@@ -401,36 +445,66 @@ class StockService:
             self.logger.error(f"Failed to untrack stock {symbol}: {str(e)}")
             raise Exception(f"Failed to untrack stock: {str(e)}")
     
-    async def get_tracked_stocks(self, user_id: int) -> List[TrackedStock]:
+    async def get_tracked_stocks(self, user_id: int) -> List[Dict[str, Any]]:
         """
-        Get all tracked stocks for a user
+        Get all tracked stocks for a user with portfolio information
         
         Args:
             user_id: User ID
             
         Returns:
-            List of tracked stocks
+            List of tracked stocks with portfolio data
         """
         try:
+            from app.models.portfolio import Portfolio as PortfolioModel
+            
             # Query tracked stocks with stock information
             tracked_stocks = self.db.query(TrackedStockModel).join(StockModel).filter(
                 and_(
                     TrackedStockModel.user_id == user_id,
-                    TrackedStockModel.is_active == True
+                    TrackedStockModel.is_active == "Y"
                 )
             ).all()
             
+            # Enhance with portfolio information
             result = []
             for tracked in tracked_stocks:
-                result.append(TrackedStock(
-                    id=tracked.id,
-                    user_id=tracked.user_id,
-                    stock_id=tracked.stock_id,
-                    custom_alert_threshold=tracked.custom_alert_threshold,
-                    is_active=tracked.is_active,
-                    created_at=tracked.created_at.isoformat(),
-                    updated_at=tracked.updated_at.isoformat()
-                ))
+                # Get portfolio for this stock if exists
+                portfolio = self.db.query(PortfolioModel).filter(
+                    and_(
+                        PortfolioModel.user_id == user_id,
+                        PortfolioModel.stock_id == tracked.stock_id
+                    )
+                ).first()
+                
+                # Build response dict
+                tracked_dict = {
+                    "id": tracked.id,
+                    "user_id": tracked.user_id,
+                    "stock_id": tracked.stock_id,
+                    "stock": tracked.stock,
+                    "custom_alert_threshold": tracked.custom_alert_threshold,
+                    "is_active": tracked.is_active,
+                    "created_at": tracked.created_at,
+                    "updated_at": tracked.updated_at,
+                    "portfolio": None
+                }
+                
+                # Add portfolio data if exists
+                if portfolio:
+                    current_price = tracked.stock.current_price or 0
+                    tracked_dict["portfolio"] = {
+                        "id": portfolio.id,
+                        "quantity": portfolio.quantity,
+                        "purchase_price": portfolio.purchase_price,
+                        "purchase_date": portfolio.purchase_date,
+                        "current_value": portfolio.calculate_current_value(current_price),
+                        "cost_basis": portfolio.calculate_cost_basis(),
+                        "profit_loss": portfolio.calculate_profit_loss(current_price),
+                        "profit_loss_pct": portfolio.calculate_profit_loss_pct(current_price)
+                    }
+                
+                result.append(tracked_dict)
             
             return result
         except Exception as e:

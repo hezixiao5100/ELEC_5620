@@ -8,6 +8,8 @@ from .tracked_stock import TrackedStock
 from .alert import Alert, AlertType, AlertStatus
 from .report import Report
 from .news import News
+from .portfolio import Portfolio
+from .chat_message import ChatMessage, MessageRole
 
 __all__ = [
     "User",
@@ -19,5 +21,8 @@ __all__ = [
     "AlertType",
     "AlertStatus",
     "Report",
-    "News"
+    "News",
+    "Portfolio",
+    "ChatMessage",
+    "MessageRole"
 ]

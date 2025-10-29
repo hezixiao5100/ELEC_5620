@@ -9,5 +9,17 @@ passlib[bcrypt]==1.7.4
 python-multipart==0.0.6
 python-dotenv==1.0.0
 httpx==0.25.1
+APScheduler==3.11.0
+
+# LangChain for AI Agent (使用官方最新架构)
+langchain
+langchain-openai
+langchain-community
+langchain-core
+langgraph
+openai
+
+# Additional utilities
+yfinance
 
 

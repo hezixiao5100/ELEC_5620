@@ -3,7 +3,7 @@ FastAPI Application Entry Point
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import auth, stocks, portfolio, reports, alerts, admin, tasks, monitoring
+from app.api import auth, stocks, portfolio, reports, alerts, admin, tasks, monitoring, chat
 from app.database import init_db
 from app.config import settings
 from app.core.error_handlers import setup_error_handlers
@@ -33,6 +33,7 @@ app.include_router(alerts.router, prefix="/api/v1/alerts", tags=["Alerts"])
 app.include_router(admin.router, prefix="/api/v1/admin", tags=["Admin"])
 app.include_router(tasks.router, prefix="/api/v1/tasks", tags=["Background Tasks"])
 app.include_router(monitoring.router, prefix="/api/v1/monitoring", tags=["System Monitoring"])
+app.include_router(chat.router, prefix="/api/v1/chat", tags=["AI Chat"])
 
 # Setup error handlers
 setup_error_handlers(app)
@@ -57,54 +58,29 @@ async def startup_event():
         logger.error(f"Failed to initialize database: {str(e)}")
         raise
     
-    # Start Celery worker and beat scheduler
+    # Start APScheduler for background tasks
     try:
-        import subprocess
-        import threading
-        import time
-        
-        def start_celery_worker():
-            """Start Celery worker in background"""
-            try:
-                subprocess.Popen([
-                    "python", "-m", "celery", "-A", "app.celery_app", "worker", 
-                    "--loglevel=info", "--detach"
-                ])
-                logger.info("Celery worker started")
-            except Exception as e:
-                logger.error(f"Failed to start Celery worker: {e}")
-        
-        def start_celery_beat():
-            """Start Celery beat scheduler in background"""
-            try:
-                subprocess.Popen([
-                    "python", "-m", "celery", "-A", "app.celery_app", "beat", 
-                    "--loglevel=info", "--detach"
-                ])
-                logger.info("Celery beat scheduler started")
-            except Exception as e:
-                logger.error(f"Failed to start Celery beat: {e}")
-        
-        # Start Celery services in background threads
-        worker_thread = threading.Thread(target=start_celery_worker)
-        beat_thread = threading.Thread(target=start_celery_beat)
-        
-        worker_thread.start()
-        time.sleep(1)  # Small delay between starts
-        beat_thread.start()
-        
-        logger.info("Background services started successfully")
-        
+        from app.scheduler import start_scheduler
+        start_scheduler()
+        logger.info("Background scheduler started successfully")
     except Exception as e:
-        logger.error(f"Failed to start background services: {str(e)}")
-        # Don't raise here, let the app start even if Celery fails
+        logger.error(f"Failed to start scheduler: {str(e)}")
+        # Don't raise here, let the app start even if scheduler fails
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """
-    Application shutdown event
+    Application shutdown event - stops background scheduler
     """
-    print("🔄 Application shutting down...")
+    logger.info("Application shutting down...")
+    
+    # Stop scheduler gracefully
+    try:
+        from app.scheduler import stop_scheduler
+        stop_scheduler()
+        logger.info("Background scheduler stopped")
+    except Exception as e:
+        logger.error(f"Error stopping scheduler: {str(e)}")
 
 @app.get("/")
 async def root():

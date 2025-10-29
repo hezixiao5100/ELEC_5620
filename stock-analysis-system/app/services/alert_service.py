@@ -67,6 +67,9 @@ class AlertService:
                     alert_type=alert.alert_type,
                     threshold_value=alert.threshold_value,
                     current_value=alert.current_value,
+                    trigger_count=alert.trigger_count,
+                    trigger_history=alert.trigger_history,
+                    required_triggers=alert.required_triggers,
                     message=alert.message,
                     status=alert.status,
                     triggered_at=alert.triggered_at.isoformat() if alert.triggered_at else None,
@@ -108,6 +111,9 @@ class AlertService:
                     alert_type=alert.alert_type,
                     threshold_value=alert.threshold_value,
                     current_value=alert.current_value,
+                    trigger_count=alert.trigger_count,
+                    trigger_history=alert.trigger_history,
+                    required_triggers=alert.required_triggers,
                     message=alert.message,
                     status=alert.status,
                     triggered_at=alert.triggered_at.isoformat() if alert.triggered_at else None,
@@ -222,6 +228,9 @@ class AlertService:
                 alert_type=alert.alert_type,
                 threshold_value=alert.threshold_value,
                 current_value=alert.current_value,
+                trigger_count=alert.trigger_count,
+                trigger_history=alert.trigger_history,
+                required_triggers=alert.required_triggers,
                 message=alert.message,
                 status=alert.status,
                 triggered_at=alert.triggered_at.isoformat() if alert.triggered_at else None,
@@ -312,6 +321,9 @@ class AlertService:
                         alert_type=alert.alert_type,
                         threshold_value=alert.threshold_value,
                         current_value=alert.current_value,
+                        trigger_count=alert.trigger_count,
+                        trigger_history=alert.trigger_history,
+                        required_triggers=alert.required_triggers,
                         message=alert.message,
                         status=alert.status,
                         triggered_at=alert.triggered_at.isoformat(),
@@ -331,6 +343,9 @@ class AlertService:
         """
         Delete an alert
         
+        For ACKNOWLEDGED alerts: Reset to PENDING status (don't actually delete)
+        For other alerts: Actually delete from database
+        
         Args:
             alert_id: Alert ID to delete
             user_id: User ID (for security verification)
@@ -347,11 +362,21 @@ class AlertService:
             if not alert:
                 raise ValueError(f"Alert {alert_id} not found or not owned by user")
             
-            # Delete the alert
-            self.db.delete(alert)
-            self.db.commit()
-            
-            self.logger.info(f"Alert {alert_id} deleted for user {user_id}")
+            # If alert is ACKNOWLEDGED, reset it to PENDING instead of deleting
+            if alert.status == AlertStatus.ACKNOWLEDGED:
+                alert.status = AlertStatus.PENDING
+                alert.trigger_count = 0
+                alert.trigger_history = None
+                alert.triggered_at = None
+                alert.acknowledged_at = None
+                alert.message = f"Price drop alert for {alert.stock.symbol} at {alert.threshold_value}%"
+                self.db.commit()
+                self.logger.info(f"Alert {alert_id} reset to PENDING (was ACKNOWLEDGED)")
+            else:
+                # For PENDING or TRIGGERED alerts, actually delete
+                self.db.delete(alert)
+                self.db.commit()
+                self.logger.info(f"Alert {alert_id} deleted for user {user_id}")
             
         except Exception as e:
             self.db.rollback()

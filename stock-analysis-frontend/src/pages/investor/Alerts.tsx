@@ -144,6 +144,31 @@ const Alerts: React.FC = () => {
       render: (value: number) => value ? `$${value.toFixed(2)}` : '-',
     },
     {
+      title: 'Trigger Count',
+      key: 'trigger_count',
+      render: (_: any, record: Alert) => {
+        const count = record.trigger_count || 0;
+        const required = record.required_triggers || 5;
+        const percentage = (count / required) * 100;
+        
+        return (
+          <Space>
+            <Tag color={count >= required ? 'red' : count > 0 ? 'orange' : 'default'}>
+              {count}/{required}
+            </Tag>
+            {count > 0 && (
+              <span style={{ 
+                fontSize: '12px', 
+                color: percentage >= 80 ? '#ff4d4f' : percentage >= 50 ? '#fa8c16' : '#8c8c8c'
+              }}>
+                ({percentage.toFixed(0)}%)
+              </span>
+            )}
+          </Space>
+        );
+      },
+    },
+    {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',

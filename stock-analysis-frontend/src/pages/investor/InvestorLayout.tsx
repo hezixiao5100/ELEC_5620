@@ -9,6 +9,7 @@ import {
   FileTextOutlined,
   LogoutOutlined,
   UserOutlined,
+  RobotOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/stores/authStore';
 import type { MenuProps } from 'antd';
@@ -20,6 +21,7 @@ import StockSearch from './StockSearch';
 import StockDetail from './StockDetail';
 import Alerts from './Alerts';
 import Reports from './Reports';
+import AIAssistant from './AIAssistant';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -58,6 +60,12 @@ const InvestorLayout: React.FC = () => {
       icon: <BellOutlined />,
       label: 'Alerts',
       onClick: () => navigate('/investor/alerts'),
+    },
+    {
+      key: 'ai-assistant',
+      icon: <RobotOutlined />,
+      label: 'AI Assistant',
+      onClick: () => navigate('/investor/ai-assistant'),
     },
     {
       key: 'reports',
@@ -147,6 +155,7 @@ const InvestorLayout: React.FC = () => {
               <Route path="/stocks" element={<StockSearch />} />
               <Route path="/stocks/:symbol" element={<StockDetail />} />
               <Route path="/alerts" element={<Alerts />} />
+              <Route path="/ai-assistant" element={<AIAssistant />} />
               <Route path="/reports" element={<Reports />} />
             </Routes>
           </div>

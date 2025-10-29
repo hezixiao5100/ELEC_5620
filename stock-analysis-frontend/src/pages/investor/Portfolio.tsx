@@ -59,9 +59,19 @@ const Portfolio: React.FC = () => {
     }
   };
 
-  const handleTrackStock = async (values: { symbol: string; threshold?: number }) => {
+  const handleTrackStock = async (values: { 
+    symbol: string; 
+    threshold?: number;
+    quantity?: number;
+    purchasePrice?: number;
+  }) => {
     try {
-      await stockService.trackStock(values.symbol.toUpperCase(), values.threshold);
+      await stockService.trackStock(
+        values.symbol.toUpperCase(), 
+        values.threshold,
+        values.quantity,
+        values.purchasePrice
+      );
       message.success(`Successfully tracked ${values.symbol.toUpperCase()}`);
       setIsModalVisible(false);
       form.resetFields();
@@ -101,6 +111,9 @@ const Portfolio: React.FC = () => {
     setIsEditModalVisible(true);
   };
 
+  const [isPortfolioModalVisible, setIsPortfolioModalVisible] = useState(false);
+  const [portfolioForm] = Form.useForm();
+
   const handleUpdateThreshold = async (values: { threshold?: number }) => {
     if (!editingStock) return;
     
@@ -114,6 +127,34 @@ const Portfolio: React.FC = () => {
       loadTrackedStocks();
     } catch (error: any) {
       message.error(error.response?.data?.detail || 'Failed to update threshold');
+    }
+  };
+
+  const handleEditPortfolio = (stock: TrackedStock) => {
+    setEditingStock(stock);
+    portfolioForm.setFieldsValue({
+      quantity: stock.portfolio?.quantity || 0,
+      purchasePrice: stock.portfolio?.purchase_price || stock.stock.current_price,
+    });
+    setIsPortfolioModalVisible(true);
+  };
+
+  const handleUpdatePortfolio = async (values: { quantity: number; purchasePrice: number }) => {
+    if (!editingStock) return;
+    
+    try {
+      await stockService.updatePortfolio(
+        editingStock.stock.symbol, 
+        values.quantity,
+        values.purchasePrice
+      );
+      message.success(`Updated portfolio for ${editingStock.stock.symbol}`);
+      setIsPortfolioModalVisible(false);
+      setEditingStock(null);
+      portfolioForm.resetFields();
+      loadTrackedStocks();
+    } catch (error: any) {
+      message.error(error.response?.data?.detail || 'Failed to update portfolio');
     }
   };
 
@@ -148,6 +189,67 @@ const Portfolio: React.FC = () => {
       ),
     },
     {
+      title: 'Quantity',
+      key: 'quantity',
+      align: 'right' as const,
+      render: (_: any, record: TrackedStock) => {
+        if (record.portfolio) {
+          return <span>{record.portfolio.quantity.toFixed(2)}</span>;
+        }
+        return <span style={{ color: '#999' }}>-</span>;
+      },
+    },
+    {
+      title: 'Avg Cost',
+      key: 'avgCost',
+      align: 'right' as const,
+      render: (_: any, record: TrackedStock) => {
+        if (record.portfolio) {
+          return <span>${record.portfolio.purchase_price.toFixed(2)}</span>;
+        }
+        return <span style={{ color: '#999' }}>-</span>;
+      },
+    },
+    {
+      title: 'Market Value',
+      key: 'marketValue',
+      align: 'right' as const,
+      render: (_: any, record: TrackedStock) => {
+        if (record.portfolio) {
+          return <span style={{ fontWeight: 'bold' }}>${record.portfolio.current_value.toFixed(2)}</span>;
+        }
+        return <span style={{ color: '#999' }}>-</span>;
+      },
+    },
+    {
+      title: 'Profit/Loss',
+      key: 'profitLoss',
+      align: 'right' as const,
+      render: (_: any, record: TrackedStock) => {
+        if (record.portfolio) {
+          const { profit_loss, profit_loss_pct } = record.portfolio;
+          const isProfit = profit_loss >= 0;
+          return (
+            <div>
+              <div style={{ 
+                color: isProfit ? '#52c41a' : '#ff4d4f',
+                fontWeight: 'bold'
+              }}>
+                {isProfit ? '+' : ''}{profit_loss.toFixed(2)}
+              </div>
+              <div style={{ 
+                color: isProfit ? '#52c41a' : '#ff4d4f',
+                fontSize: '12px'
+              }}>
+                ({isProfit ? '+' : ''}{profit_loss_pct.toFixed(2)}%)
+              </div>
+            </div>
+          );
+        }
+        return <span style={{ color: '#999' }}>-</span>;
+      },
+    },
+    {
       title: 'Alert Threshold',
       dataIndex: 'custom_alert_threshold',
       key: 'threshold',
@@ -174,18 +276,24 @@ const Portfolio: React.FC = () => {
       dataIndex: 'is_active',
       key: 'status',
       align: 'center' as const,
-      render: (isActive: boolean) => (
-        <Tag color={isActive ? 'green' : 'red'}>
-          {isActive ? 'Active' : 'Inactive'}
+      render: (isActive: string) => (
+        <Tag color={isActive === 'Y' ? 'green' : 'red'}>
+          {isActive === 'Y' ? 'Active' : 'Inactive'}
         </Tag>
       ),
     },
     {
       title: 'Actions',
       key: 'actions',
-      width: 120,
+      width: 160,
       render: (_: any, record: TrackedStock) => (
         <Space>
+          <Button
+            type="text"
+            icon={<EditOutlined />}
+            onClick={() => handleEditPortfolio(record)}
+            title="Edit Holding"
+          />
           <Button
             type="text"
             icon={<EyeOutlined />}
@@ -302,6 +410,33 @@ const Portfolio: React.FC = () => {
             />
           </Form.Item>
 
+          <Form.Item
+            name="quantity"
+            label="Quantity (Optional)"
+            help="Number of shares you own"
+          >
+            <InputNumber
+              style={{ width: '100%' }}
+              placeholder="e.g., 100"
+              min={0}
+              precision={2}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="purchasePrice"
+            label="Purchase Price (Optional)"
+            help="Average cost per share"
+          >
+            <InputNumber
+              style={{ width: '100%' }}
+              placeholder="e.g., 150.00"
+              min={0}
+              prefix="$"
+              precision={2}
+            />
+          </Form.Item>
+
           <Form.Item style={{ marginBottom: 0 }}>
             <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
               <Button onClick={() => setIsModalVisible(false)}>
@@ -351,6 +486,76 @@ const Portfolio: React.FC = () => {
                   setIsEditModalVisible(false);
                   setEditingStock(null);
                   editForm.resetFields();
+                }}
+              >
+                Cancel
+              </Button>
+              <Button type="primary" htmlType="submit">
+                Update
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Edit Portfolio Modal */}
+      <Modal
+        title={`Edit Portfolio Holding - ${editingStock?.stock.symbol}`}
+        open={isPortfolioModalVisible}
+        onCancel={() => {
+          setIsPortfolioModalVisible(false);
+          setEditingStock(null);
+          portfolioForm.resetFields();
+        }}
+        footer={null}
+      >
+        <Form
+          form={portfolioForm}
+          layout="vertical"
+          onFinish={handleUpdatePortfolio}
+        >
+          <Form.Item
+            name="quantity"
+            label="Quantity"
+            rules={[
+              { required: true, message: 'Please enter quantity' },
+              { type: 'number', min: 0, message: 'Quantity must be positive' },
+            ]}
+            help="Number of shares you own"
+          >
+            <InputNumber
+              style={{ width: '100%' }}
+              placeholder="e.g., 100"
+              min={0}
+              precision={2}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="purchasePrice"
+            label="Purchase Price"
+            rules={[
+              { required: true, message: 'Please enter purchase price' },
+              { type: 'number', min: 0, message: 'Price must be positive' },
+            ]}
+            help="Average cost per share"
+          >
+            <InputNumber
+              style={{ width: '100%' }}
+              placeholder="e.g., 150.00"
+              min={0}
+              prefix="$"
+              precision={2}
+            />
+          </Form.Item>
+
+          <Form.Item style={{ marginBottom: 0 }}>
+            <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
+              <Button 
+                onClick={() => {
+                  setIsPortfolioModalVisible(false);
+                  setEditingStock(null);
+                  portfolioForm.resetFields();
                 }}
               >
                 Cancel
