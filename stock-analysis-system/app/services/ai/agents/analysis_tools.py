@@ -1,6 +1,6 @@
 """
 Analysis Tools for LangChain Agent
-轻量级包装层，调用现有的 Agent 系统来处理分析任务
+Lightweight wrapper layer that calls existing Agent system to handle analysis tasks
 """
 from typing import Dict, Any, Optional
 from pydantic import BaseModel, Field
@@ -28,63 +28,63 @@ logger = logging.getLogger(__name__)
 # ==================== Tool Input Schemas ====================
 
 class PortfolioRiskInput(BaseModel):
-    """投资组合风险分析输入"""
-    analysis_depth: str = Field(default="quick", description="分析深度: quick 或 detailed")
-    focus_area: str = Field(default="all", description="关注领域: concentration, volatility, sector_exposure, 或 all")
+    """Portfolio risk analysis input"""
+    analysis_depth: str = Field(default="quick", description="Analysis depth: quick or detailed")
+    focus_area: str = Field(default="all", description="Focus area: concentration, volatility, sector_exposure, or all")
 
 
 class MarketSentimentInput(BaseModel):
-    """市场情绪分析输入"""
-    scope: str = Field(default="market", description="分析范围: market, stock, 或 sector")
-    symbol: Optional[str] = Field(default=None, description="股票代码（如果分析特定股票）")
-    time_range: str = Field(default="today", description="时间范围: today, week, 或 month")
+    """Market sentiment analysis input"""
+    scope: str = Field(default="market", description="Analysis scope: market, stock, or sector")
+    symbol: Optional[str] = Field(default=None, description="Stock symbol (if analyzing specific stock)")
+    time_range: str = Field(default="today", description="Time range: today, week, or month")
 
 
 class StockPerformanceInput(BaseModel):
-    """股票表现分析输入"""
-    symbol: str = Field(..., description="股票代码（例如：AAPL, TSLA, MSFT）")
-    analysis_type: str = Field(default="comprehensive", description="分析类型: price_trend, technical_indicators, peer_comparison, 或 comprehensive")
-    time_period: str = Field(default="1mo", description="时间周期: 1d, 5d, 1mo(1个月), 3mo(3个月), 6mo, 1y(1年), 2y, 5y, 10y, ytd, max")
+    """Stock performance analysis input"""
+    symbol: str = Field(..., description="Stock symbol (e.g., AAPL, TSLA, MSFT)")
+    analysis_type: str = Field(default="comprehensive", description="Analysis type: price_trend, technical_indicators, peer_comparison, or comprehensive")
+    time_period: str = Field(default="1mo", description="Time period: 1d, 5d, 1mo, 3mo, 6mo, 1y, 2y, 5y, 10y, ytd, max")
 
 
 class AlertStatusInput(BaseModel):
-    """预警状态分析输入"""
-    focus: str = Field(default="all", description="关注重点: all, high_risk, 或 near_trigger")
+    """Alert status analysis input"""
+    focus: str = Field(default="all", description="Focus area: all, high_risk, or near_trigger")
 
 
 class PortfolioPerformanceInput(BaseModel):
-    """投资组合表现分析输入"""
-    metric: str = Field(default="overall", description="分析指标: overall, by_stock, profit_loss, 或 ranking")
-    time_range: str = Field(default="all_time", description="时间范围: today, week, month, year, 或 all_time")
+    """Portfolio performance analysis input"""
+    metric: str = Field(default="overall", description="Analysis metric: overall, by_stock, profit_loss, or ranking")
+    time_range: str = Field(default="all_time", description="Time range: today, week, month, year, or all_time")
 
 
 class MarketTrendInput(BaseModel):
-    """市场趋势分析输入"""
-    focus: str = Field(default="sectors", description="分析焦点: sectors, market_leaders, emerging_trends, 或 risk_factors")
+    """Market trend analysis input"""
+    focus: str = Field(default="sectors", description="Analysis focus: sectors, market_leaders, emerging_trends, or risk_factors")
 
 
 class StockNewsInput(BaseModel):
-    """股票新闻分析输入"""
-    symbol: str = Field(..., description="股票代码（例如：AAPL, MSFT, TSLA）")
-    days: int = Field(default=7, description="获取最近几天的新闻，默认7天")
+    """Stock news analysis input"""
+    symbol: str = Field(..., description="Stock symbol (e.g., AAPL, MSFT, TSLA)")
+    days: int = Field(default=7, description="Get news for recent days, default 7 days")
 
 
 class CollectStockDataInput(BaseModel):
-    """收集股票数据输入"""
-    symbol: str = Field(..., description="股票代码（例如：AAPL, MSFT, TSLA）")
-    days: int = Field(default=3, description="收集最近几天的数据，默认3天，最多7天")
+    """Collect stock data input"""
+    symbol: str = Field(..., description="Stock symbol (e.g., AAPL, MSFT, TSLA)")
+    days: int = Field(default=3, description="Collect data for recent days, default 3 days, max 7 days")
 
 
 class StockRiskInput(BaseModel):
-    """单只股票风险分析输入"""
-    symbol: str = Field(..., description="股票代码（例如：AAPL, MSFT, TSLA）")
-    time_period: str = Field(default="3mo", description="分析时间周期: 1mo, 3mo, 6mo, 1y")
+    """Individual stock risk analysis input"""
+    symbol: str = Field(..., description="Stock symbol (e.g., AAPL, MSFT, TSLA)")
+    time_period: str = Field(default="3mo", description="Analysis time period: 1mo, 3mo, 6mo, 1y")
 
 
 # ==================== Helper Functions ====================
 
 def get_stock_historical_data(db: Session, symbol: str, days: int = 30) -> list:
-    """从数据库获取股票历史数据"""
+    """Get stock historical data from database"""
     try:
         stock = db.query(StockModel).filter(StockModel.symbol == symbol.upper()).first()
         if not stock:
@@ -112,7 +112,7 @@ def get_stock_historical_data(db: Session, symbol: str, days: int = 30) -> list:
         return []
 
 
-# ==================== Tool Functions (调用现有 Agents) ====================
+# ==================== Tool Functions (call existing Agents) ====================
 
 def analyze_portfolio_risk(
     user_id: int,
@@ -120,12 +120,12 @@ def analyze_portfolio_risk(
     focus_area: str = "all"
 ) -> Dict[str, Any]:
     """
-    分析用户投资组合的风险状况（调用现有的 Portfolio 数据）
+    Analyze user portfolio risk (using existing Portfolio data)
     """
     try:
         db = SessionLocal()
         
-        # 获取用户的所有持仓
+        # Get all user holdings
         portfolios = db.query(PortfolioModel).filter(
             PortfolioModel.user_id == user_id
         ).all()
@@ -134,12 +134,12 @@ def analyze_portfolio_risk(
             db.close()
             return {
                 "status": "no_data",
-                "message": "您还没有任何持仓",
-                "risk_level": "无风险",
+                "message": "You don't have any holdings yet",
+                "risk_level": "NO_RISK",
                 "total_holdings": 0
             }
         
-        # 获取股票信息
+        # Get stock info
         stocks_info = []
         total_value = 0
         
@@ -162,14 +162,14 @@ def analyze_portfolio_risk(
                     "weight": 0  # Will calculate after
                 })
         
-        # 计算权重
+        # Compute weights
         for stock in stocks_info:
             stock["weight"] = (stock["current_value"] / total_value * 100) if total_value > 0 else 0
         
-        # 计算集中度风险
+        # Concentration risk
         max_weight = max([s["weight"] for s in stocks_info]) if stocks_info else 0
         
-        # 计算行业分散度
+        # Sector diversification
         sectors = {}
         for stock in stocks_info:
             sector = stock["sector"]
@@ -177,15 +177,15 @@ def analyze_portfolio_risk(
                 sectors[sector] = 0
             sectors[sector] += stock["weight"]
         
-        # 风险评估
+        # Risk assessment
         if max_weight > 40:
-            risk_level = "高风险"
+            risk_level = "HIGH"
             risk_emoji = "🔴"
         elif max_weight > 25:
-            risk_level = "中等风险"
+            risk_level = "MEDIUM"
             risk_emoji = "🟡"
         else:
-            risk_level = "低风险"
+            risk_level = "LOW"
             risk_emoji = "🟢"
         
         db.close()
@@ -198,20 +198,20 @@ def analyze_portfolio_risk(
             "total_value": round(total_value, 2),
             "concentration_risk": {
                 "max_weight": round(max_weight, 2),
-                "description": f"最大单只股票占比 {max_weight:.2f}%"
+                "description": f"Max single-stock weight {max_weight:.2f}%"
             },
             "sector_distribution": {
                 sector: round(weight, 2) for sector, weight in sectors.items()
             },
             "holdings": stocks_info,
-            "summary": f"{risk_emoji} 投资组合风险等级: **{risk_level}**，共持有 {len(portfolios)} 只股票，总市值 ${total_value:.2f}"
+            "summary": f"{risk_emoji} Portfolio risk level: **{risk_level}** with {len(portfolios)} holdings, total value ${total_value:.2f}"
         }
         
     except Exception as e:
         logger.error(f"Portfolio risk analysis error: {str(e)}")
         return {
             "status": "error",
-            "message": f"投资组合风险分析失败: {str(e)}"
+            "message": f"Portfolio risk analysis failed: {str(e)}"
         }
 
 
@@ -222,28 +222,28 @@ def analyze_market_sentiment(
     time_range: str = "today"
 ) -> Dict[str, Any]:
     """
-    分析市场情绪（调用 EmotionalAnalysisAgent）
+    Analyze market sentiment (calls EmotionalAnalysisAgent)
     """
     try:
         if scope == "stock" and not symbol:
             return {
                 "status": "error",
-                "message": "分析特定股票情绪时需要提供股票代码"
+                "message": "Stock symbol is required when analyzing a specific stock's sentiment"
             }
         
         db = SessionLocal()
         
-        # 准备数据
+        # Prepare data
         if symbol:
             stock = db.query(StockModel).filter(StockModel.symbol == symbol.upper()).first()
             if not stock:
                 db.close()
                 return {
                     "status": "error",
-                    "message": f"未找到股票 {symbol}"
+                    "message": f"Stock {symbol} not found"
                 }
             
-            # 获取新闻数据
+            # Fetch news data
             days_map = {"today": 1, "week": 7, "month": 30}
             days = days_map.get(time_range, 7)
             cutoff_date = datetime.utcnow() - timedelta(days=days)
@@ -272,7 +272,7 @@ def analyze_market_sentiment(
             news_data = []
             stock_data = {}
         
-        # 调用 EmotionalAnalysisAgent
+        # Call EmotionalAnalysisAgent
         agent = EmotionalAnalysisAgent()
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -293,14 +293,14 @@ def analyze_market_sentiment(
             "sentiment": result.get("news_sentiment", {}),
             "market_sentiment": result.get("market_sentiment", {}),
             "fear_greed_index": result.get("fear_greed_index", {}),
-            "summary": f"市场情绪分析完成，情绪信号: {result.get('emotional_signal', 'NEUTRAL')}"
+            "summary": f"Market sentiment analysis completed. Signal: {result.get('emotional_signal', 'NEUTRAL')}"
         }
         
     except Exception as e:
         logger.error(f"Market sentiment analysis error: {str(e)}")
         return {
             "status": "error",
-            "message": f"市场情绪分析失败: {str(e)}"
+            "message": f"Market sentiment analysis failed: {str(e)}"
         }
 
 
@@ -311,21 +311,21 @@ def analyze_stock_performance(
     time_period: str = "1mo"
 ) -> Dict[str, Any]:
     """
-    分析股票表现（调用 AnalysisAgent）
+    Analyze stock performance (calls AnalysisAgent)
     """
     try:
         db = SessionLocal()
         
-        # 获取股票信息
+        # Get stock info
         stock = db.query(StockModel).filter(StockModel.symbol == symbol.upper()).first()
         if not stock:
             db.close()
             return {
                 "status": "error",
-                "message": f"未找到股票 {symbol}"
+                "message": f"Stock {symbol} not found"
             }
         
-        # 获取历史数据
+        # Get historical data
         period_days_map = {
             "1d": 1, "5d": 5, "1mo": 30, "3mo": 90,
             "6mo": 180, "1y": 365, "2y": 730, "5y": 1825
@@ -337,7 +337,7 @@ def analyze_stock_performance(
             db.close()
             return {
                 "status": "no_data",
-                "message": f"没有找到 {symbol} 的历史数据，建议先收集数据"
+                "message": f"No historical data found for {symbol}. Consider collecting data first"
             }
         
         stock_data = {
@@ -346,7 +346,7 @@ def analyze_stock_performance(
             "historical_data": historical_data
         }
         
-        # 调用 AnalysisAgent
+        # Call AnalysisAgent
         agent = AnalysisAgent()
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -358,7 +358,7 @@ def analyze_stock_performance(
             loop.close()
             db.close()
         
-        # 格式化结果
+        # Format result
         technical = result.get("technical_analysis", {})
         
         return {
@@ -370,7 +370,7 @@ def analyze_stock_performance(
             "technical_analysis": technical,
             "trading_signal": result.get("trading_signal", "HOLD"),
             "confidence_score": result.get("confidence_score", 0),
-            "summary": f"📊 {symbol} 技术分析完成，交易信号: {result.get('trading_signal', 'HOLD')}"
+            "summary": f"📊 {symbol} technical analysis complete. Signal: {result.get('trading_signal', 'HOLD')}"
         }
         
     except Exception as e:
@@ -379,7 +379,7 @@ def analyze_stock_performance(
         traceback.print_exc()
         return {
             "status": "error",
-            "message": f"股票表现分析失败: {str(e)}"
+            "message": f"Stock performance analysis failed: {str(e)}"
         }
 
 
@@ -388,18 +388,18 @@ def analyze_alert_status(
     focus: str = "all"
 ) -> Dict[str, Any]:
     """
-    分析预警状态
+    Analyze alert status
     """
     try:
         db = SessionLocal()
         
-        # 获取用户的所有预警
+        # Get all user alerts
         query = db.query(AlertModel).filter(AlertModel.user_id == user_id)
         
         if focus == "high_risk":
             query = query.filter(AlertModel.status == "TRIGGERED")
         elif focus == "near_trigger":
-            # 简化：获取 PENDING 状态的预警
+            # Simplified: get PENDING alerts
             query = query.filter(AlertModel.status == "PENDING")
         
         alerts = query.all()
@@ -408,11 +408,11 @@ def analyze_alert_status(
             db.close()
             return {
                 "status": "no_data",
-                "message": "您还没有设置任何预警",
+                "message": "You have not set any alerts yet",
                 "total_alerts": 0
             }
         
-        # 统计预警状态
+        # Aggregate alert status
         status_counts = {}
         alert_list = []
         
@@ -441,14 +441,14 @@ def analyze_alert_status(
             "total_alerts": len(alerts),
             "status_counts": status_counts,
             "alerts": alert_list,
-            "summary": f"共有 {len(alerts)} 个预警，其中 {status_counts.get('TRIGGERED', 0)} 个已触发"
+            "summary": f"There are {len(alerts)} alerts, {status_counts.get('TRIGGERED', 0)} triggered"
         }
         
     except Exception as e:
         logger.error(f"Alert status analysis error: {str(e)}")
         return {
             "status": "error",
-            "message": f"预警状态分析失败: {str(e)}"
+            "message": f"Alert status analysis failed: {str(e)}"
         }
 
 
@@ -458,12 +458,12 @@ def analyze_portfolio_performance(
     time_range: str = "all_time"
 ) -> Dict[str, Any]:
     """
-    分析投资组合表现
+    Analyze portfolio performance
     """
     try:
         db = SessionLocal()
         
-        # 获取用户的所有持仓
+        # Get all user holdings
         portfolios = db.query(PortfolioModel).filter(
             PortfolioModel.user_id == user_id
         ).all()
@@ -472,11 +472,11 @@ def analyze_portfolio_performance(
             db.close()
             return {
                 "status": "no_data",
-                "message": "您还没有任何持仓",
+                "message": "You don't have any holdings yet",
                 "total_holdings": 0
             }
         
-        # 计算总体表现
+        # Compute overall performance
         total_cost = 0
         total_value = 0
         holdings = []
@@ -508,7 +508,7 @@ def analyze_portfolio_performance(
         total_profit_loss = total_value - total_cost
         total_return_pct = (total_profit_loss / total_cost * 100) if total_cost > 0 else 0
         
-        # 排序（按盈亏百分比）
+        # Sort by profit/loss percentage
         holdings_sorted = sorted(holdings, key=lambda x: x["profit_loss_pct"], reverse=True)
         
         db.close()
@@ -522,14 +522,14 @@ def analyze_portfolio_performance(
             "total_profit_loss": round(total_profit_loss, 2),
             "total_return_pct": round(total_return_pct, 2),
             "holdings": holdings_sorted,
-            "summary": f"💰 投资组合总收益: ${total_profit_loss:.2f} ({total_return_pct:+.2f}%)"
+            "summary": f"💰 Portfolio total P/L: ${total_profit_loss:.2f} ({total_return_pct:+.2f}%)"
         }
         
     except Exception as e:
         logger.error(f"Portfolio performance analysis error: {str(e)}")
         return {
             "status": "error",
-            "message": f"投资组合表现分析失败: {str(e)}"
+            "message": f"Portfolio performance analysis failed: {str(e)}"
         }
 
 
@@ -538,12 +538,12 @@ def analyze_market_trend(
     focus: str = "sectors"
 ) -> Dict[str, Any]:
     """
-    分析市场趋势（简化版本）
+    Analyze market trends (simplified)
     """
     try:
         db = SessionLocal()
         
-        # 获取用户追踪的股票
+        # Get user-tracked stocks
         tracked_stocks = db.query(TrackedStockModel).filter(
             TrackedStockModel.user_id == user_id,
             TrackedStockModel.is_active == "Y"
@@ -553,11 +553,11 @@ def analyze_market_trend(
             db.close()
             return {
                 "status": "no_data",
-                "message": "您还没有追踪任何股票",
+                "message": "You are not tracking any stocks yet",
                 "total_tracked": 0
             }
         
-        # 按行业分组
+        # Group by sector
         sectors = {}
         for ts in tracked_stocks:
             stock = db.query(StockModel).filter(StockModel.id == ts.stock_id).first()
@@ -579,14 +579,14 @@ def analyze_market_trend(
             "sectors": sectors,
             "sector_count": len(sectors),
             "total_tracked": len(tracked_stocks),
-            "summary": f"📈 您追踪的股票覆盖 {len(sectors)} 个行业，共 {len(tracked_stocks)} 只股票"
+            "summary": f"📈 Your tracked stocks span {len(sectors)} sectors, total {len(tracked_stocks)} stocks"
         }
         
     except Exception as e:
         logger.error(f"Market trend analysis error: {str(e)}")
         return {
             "status": "error",
-            "message": f"市场趋势分析失败: {str(e)}"
+            "message": f"Market trend analysis failed: {str(e)}"
         }
 
 
@@ -596,14 +596,14 @@ def analyze_stock_news(
     days: int = 7
 ) -> Dict[str, Any]:
     """
-    获取并分析股票的最近新闻
+    Get and analyze recent news for a stock
     """
     try:
         db = SessionLocal()
         stock = db.query(StockModel).filter(StockModel.symbol == symbol.upper()).first()
         if not stock:
             db.close()
-            return {"status": "error", "message": f"未找到股票 {symbol}"}
+            return {"status": "error", "message": f"Stock {symbol} not found"}
         
         cutoff_date = datetime.utcnow() - timedelta(days=days)
         news_items = db.query(NewsModel).filter(
@@ -615,7 +615,7 @@ def analyze_stock_news(
             db.close()
             return {
                 "status": "no_data",
-                "message": f"最近 {days} 天内没有找到 {symbol} 的新闻",
+                "message": f"No news found for {symbol} in the last {days} days",
                 "symbol": symbol,
                 "news_count": 0
             }
@@ -629,13 +629,13 @@ def analyze_stock_news(
             categories[cat] = categories.get(cat, 0) + 1
         
         if avg_sentiment > 0.3:
-            sentiment_label = "积极"
+            sentiment_label = "POSITIVE"
             sentiment_emoji = "🟢"
         elif avg_sentiment < -0.3:
-            sentiment_label = "消极"
+            sentiment_label = "NEGATIVE"
             sentiment_emoji = "🔴"
         else:
-            sentiment_label = "中性"
+            sentiment_label = "NEUTRAL"
             sentiment_emoji = "🟡"
         
         news_list = []
@@ -659,17 +659,17 @@ def analyze_stock_news(
                 "average_score": round(avg_sentiment, 2),
                 "label": sentiment_label,
                 "emoji": sentiment_emoji,
-                "description": f"基于 {len(sentiment_scores)} 条新闻的情绪评分"
+                "description": f"Sentiment score based on {len(sentiment_scores)} news items"
             },
             "categories": categories,
             "news_list": news_list,
-            "summary": f"{sentiment_emoji} 最近 {days} 天内有 {len(news_items)} 条关于 {symbol} 的新闻，整体情绪{sentiment_label}（{avg_sentiment:.2f}）"
+            "summary": f"{sentiment_emoji} There were {len(news_items)} news items about {symbol} in the last {days} days, overall sentiment {sentiment_label} ({avg_sentiment:.2f})"
         }
         db.close()
         return result
     except Exception as e:
         logger.error(f"Stock news analysis error: {str(e)}")
-        return {"status": "error", "message": f"分析股票新闻时出现错误: {str(e)}"}
+        return {"status": "error", "message": f"Error analyzing stock news: {str(e)}"}
 
 
 def collect_stock_data(
@@ -678,19 +678,19 @@ def collect_stock_data(
     days: int = 3
 ) -> Dict[str, Any]:
     """
-    触发数据收集代理（调用 DataCollectionAgent）
+    Trigger data collection agent (calls DataCollectionAgent)
     """
     try:
-        days = min(days, 7)  # 限制最多7天
+        days = min(days, 7)  # limit to 7 days max
         
         db = SessionLocal()
         
-        # 创建数据收集代理
+        # Create data collection agent
         agent = DataCollectionAgent(db=db)
         
         logger.info(f"🚀 Starting data collection for {symbol}")
         
-        # 使用 asyncio 运行异步任务
+        # Run async task using asyncio
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
@@ -699,7 +699,7 @@ def collect_stock_data(
             loop.close()
             db.close()
         
-        # 解析结果
+        # Parse result
         if result and result.get("data_quality") == "valid":
             stock_data = result.get("stock_data", {})
             news_data = result.get("news_data", [])
@@ -707,7 +707,7 @@ def collect_stock_data(
             return {
                 "status": "success",
                 "symbol": symbol,
-                "message": f"✅ 成功收集 {symbol} 的最新数据",
+                "message": f"✅ Successfully collected latest data for {symbol}",
                 "data_collected": {
                     "current_price": stock_data.get("current_price"),
                     "price_change_24h": stock_data.get("price_change_24h"),
@@ -715,14 +715,14 @@ def collect_stock_data(
                     "news_articles": len(news_data),
                     "historical_data_points": len(stock_data.get("historical_data", []))
                 },
-                "summary": f"收集了价格数据（当前价: ${stock_data.get('current_price', 0):.2f}）和 {len(news_data)} 条新闻",
+                "summary": f"Collected price data (current: ${stock_data.get('current_price', 0):.2f}) and {len(news_data)} news articles",
                 "stored_in_db": result.get("stored_in_db", False)
             }
         else:
             return {
                 "status": "partial",
                 "symbol": symbol,
-                "message": f"⚠️ 数据收集完成但质量可能不完整",
+                "message": f"⚠️ Data collection completed but quality may be incomplete",
                 "data_collected": result
             }
         
@@ -733,7 +733,7 @@ def collect_stock_data(
         return {
             "status": "error",
             "symbol": symbol,
-            "message": f"数据收集失败: {str(e)}"
+            "message": f"Data collection failed: {str(e)}"
         }
 
 
@@ -743,21 +743,21 @@ def analyze_stock_risk(
     time_period: str = "3mo"
 ) -> Dict[str, Any]:
     """
-    分析单只股票的风险状况（调用 RiskAnalysisAgent）
+    Analyze an individual stock's risk (calls RiskAnalysisAgent)
     """
     try:
         db = SessionLocal()
         
-        # 获取股票信息
+        # Get stock info
         stock = db.query(StockModel).filter(StockModel.symbol == symbol.upper()).first()
         if not stock:
             db.close()
             return {
                 "status": "error",
-                "message": f"未找到股票 {symbol}"
+                "message": f"Stock {symbol} not found"
             }
         
-        # 获取历史数据
+        # Get historical data
         period_days_map = {"1mo": 30, "3mo": 90, "6mo": 180, "1y": 365}
         days = period_days_map.get(time_period, 90)
         historical_data = get_stock_historical_data(db, symbol, days)
@@ -766,7 +766,7 @@ def analyze_stock_risk(
             db.close()
             return {
                 "status": "no_data",
-                "message": f"没有找到 {symbol} 的历史数据，建议先收集数据"
+                "message": f"No historical data found for {symbol}. Consider collecting data first"
             }
         
         stock_data = {
@@ -775,7 +775,7 @@ def analyze_stock_risk(
             "historical_data": historical_data
         }
         
-        # 调用 RiskAnalysisAgent
+        # Call RiskAnalysisAgent
         agent = RiskAnalysisAgent()
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -787,7 +787,7 @@ def analyze_stock_risk(
         finally:
             loop.close()
         
-        # 检查用户是否持有该股票
+        # Check whether user holds this stock
         portfolio = db.query(PortfolioModel).filter(
             PortfolioModel.user_id == user_id,
             PortfolioModel.stock_id == stock.id
@@ -813,7 +813,7 @@ def analyze_stock_risk(
             "time_period": time_period,
             "risk_analysis": result,
             "portfolio_context": portfolio_context,
-            "summary": f"🔍 {symbol} 风险分析完成，风险等级: {result.get('risk_level', 'Unknown')}"
+            "summary": f"🔍 {symbol} risk analysis completed. Risk level: {result.get('risk_level', 'Unknown')}"
         }
         
     except Exception as e:
@@ -823,5 +823,5 @@ def analyze_stock_risk(
         return {
             "status": "error",
             "symbol": symbol,
-            "message": f"股票风险分析失败: {str(e)}"
+            "message": f"Stock risk analysis failed: {str(e)}"
         }

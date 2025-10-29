@@ -1,6 +1,6 @@
 /**
  * AI Assistant Page
- * AI 分析助手页面 - 类似 ChatGPT 的对话界面
+ * AI analysis assistant page - ChatGPT-like chat interface
  */
 import React, { useState, useEffect, useRef } from 'react';
 import {
@@ -44,56 +44,56 @@ const AIAssistant: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [streamingContent, setStreamingContent] = useState('');
 
-  // 建议的快捷问题
+  // Suggested quick questions
   const suggestedQuestions = [
-    '我的投资组合风险大吗？',
-    '现在市场情绪怎么样？',
-    '分析一下我的持仓表现',
-    '哪些预警快要触发了？',
-    '给我一些投资建议'
+    'How risky is my portfolio?',
+    "What's the current market sentiment?",
+    'Analyze my holdings performance',
+    'Which alerts are close to triggering?',
+    'Give me some investment insights'
   ];
 
-  // 初始化会话
+  // Initialize session
   useEffect(() => {
     const initSession = async () => {
       try {
         const newSessionId = await createNewSession();
         setSessionId(newSessionId);
         
-        // 添加欢迎消息
+        // Add welcome message
         setMessages([{
           role: 'assistant',
-          content: `👋 您好！我是 **AI 分析助手**，专门帮助您分析投资组合和市场趋势。
+          content: `👋 Hi! I'm your **AI Analysis Assistant**, here to help analyze your portfolio and market trends.
 
-我可以帮您：
-- 📊 分析投资组合风险
-- 📈 评估市场情绪和趋势
-- 💰 计算收益和表现
-- ⚠️ 监控预警状态
-- 💡 提供投资洞察
+I can help you:
+- 📊 Analyze portfolio risk
+- 📈 Assess market sentiment and trends
+- 💰 Calculate returns and performance
+- ⚠️ Monitor alert status
+- 💡 Provide investment insights
 
-有什么我可以帮您分析的吗？`,
+What would you like me to analyze?`,
           timestamp: new Date()
         }]);
       } catch (error) {
-        message.error('初始化会话失败');
+        message.error('Failed to initialize session');
       }
     };
 
     initSession();
   }, []);
 
-  // 自动滚动到底部
+  // Auto scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, streamingContent]);
 
-  // 发送消息
+  // Send message
   const handleSend = async (text?: string) => {
     const messageText = text || input.trim();
     if (!messageText || loading) return;
 
-    // 添加用户消息
+    // Add user message
     const userMessage: Message = {
       role: 'user',
       content: messageText,
@@ -103,7 +103,7 @@ const AIAssistant: React.FC = () => {
     setInput('');
     setLoading(true);
 
-    // 添加空的 AI 消息用于流式更新
+    // Add an empty AI message for streaming updates
     const aiMessage: Message = {
       role: 'assistant',
       content: '',
@@ -137,36 +137,36 @@ const AIAssistant: React.FC = () => {
         },
         // onError
         (error) => {
-          message.error(`发送消息失败: ${error}`);
-          setMessages(prev => prev.slice(0, -1)); // 移除空的 AI 消息
+          message.error(`Failed to send message: ${error}`);
+          setMessages(prev => prev.slice(0, -1)); // Remove the empty AI message
           setStreamingContent('');
           setLoading(false);
         }
       );
     } catch (error: any) {
-      message.error(`发送消息失败: ${error.message}`);
+      message.error(`Failed to send message: ${error.message}`);
       setMessages(prev => prev.slice(0, -1));
       setLoading(false);
     }
   };
 
-  // 新建对话
+  // Start new chat
   const handleNewChat = async () => {
     try {
       const newSessionId = await createNewSession();
       setSessionId(newSessionId);
       setMessages([{
         role: 'assistant',
-        content: '👋 开始新的对话！有什么我可以帮您分析的吗？',
+        content: "👋 Started a new conversation! What can I analyze for you?",
         timestamp: new Date()
       }]);
-      message.success('已开始新对话');
+      message.success('Started new conversation');
     } catch (error) {
-      message.error('创建新对话失败');
+      message.error('Failed to start new conversation');
     }
   };
 
-  // 渲染消息
+  // Render message
   const renderMessage = (msg: Message, index: number) => {
     const isUser = msg.role === 'user';
     const isLastAIMessage = msg.role === 'assistant' && index === messages.length - 1;
@@ -228,15 +228,15 @@ const AIAssistant: React.FC = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Space>
             <RobotOutlined style={{ fontSize: '24px', color: '#52c41a' }} />
-            <Title level={4} style={{ margin: 0 }}>AI 分析助手</Title>
-            <Tag color="green">在线</Tag>
+            <Title level={4} style={{ margin: 0 }}>AI Analysis Assistant</Title>
+            <Tag color="green">Online</Tag>
           </Space>
           <Button
             icon={<PlusOutlined />}
             onClick={handleNewChat}
             disabled={loading}
           >
-            新对话
+            New Chat
           </Button>
         </div>
       </Card>
@@ -259,7 +259,7 @@ const AIAssistant: React.FC = () => {
         }}
       >
         {messages.length === 0 ? (
-          <Empty description="暂无消息" />
+          <Empty description="No messages yet" />
         ) : (
           <div style={{ flex: 1 }}>
             {messages.map((msg, index) => renderMessage(msg, index))}
@@ -274,7 +274,7 @@ const AIAssistant: React.FC = () => {
           <Space direction="vertical" style={{ width: '100%' }}>
             <Space>
               <ThunderboltOutlined style={{ color: '#faad14' }} />
-              <Text strong>快捷提问：</Text>
+              <Text strong>Quick questions:</Text>
             </Space>
             <Space wrap>
               {suggestedQuestions.map((q, index) => (
@@ -304,7 +304,7 @@ const AIAssistant: React.FC = () => {
                 handleSend();
               }
             }}
-            placeholder="输入您的问题... (Shift+Enter 换行)"
+            placeholder="Enter your question... (Shift+Enter for newline)"
             autoSize={{ minRows: 1, maxRows: 4 }}
             disabled={loading}
             style={{ flex: 1 }}
@@ -317,11 +317,11 @@ const AIAssistant: React.FC = () => {
             disabled={!input.trim()}
             style={{ height: 'auto' }}
           >
-            发送
+            Send
           </Button>
         </Space.Compact>
         <Text type="secondary" style={{ fontSize: '12px', marginTop: '8px', display: 'block' }}>
-          💡 提示：此界面仅提供分析功能，不能执行买卖或修改操作
+          💡 Tip: This interface provides analysis only; it cannot execute trades or modify settings
         </Text>
       </Card>
 
@@ -362,4 +362,5 @@ const AIAssistant: React.FC = () => {
 };
 
 export default AIAssistant;
+
 

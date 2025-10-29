@@ -1,6 +1,6 @@
 /**
  * Chat Service
- * AI 分析助手的前端服务
+ * Frontend service for the AI analysis assistant
  */
 import api from './api';
 
@@ -26,7 +26,7 @@ export interface ChatHistory {
 }
 
 /**
- * 发送消息（非流式）
+ * Send message (non-streaming)
  */
 export const sendMessage = async (
   message: string,
@@ -40,7 +40,7 @@ export const sendMessage = async (
 };
 
 /**
- * 流式发送消息（SSE）
+ * Stream message (SSE)
  */
 export const streamChatMessage = async (
   message: string,
@@ -111,7 +111,7 @@ export const streamChatMessage = async (
 };
 
 /**
- * 获取所有会话列表
+ * Get all sessions
  */
 export const getSessions = async (): Promise<ChatSession[]> => {
   const response = await api.get('/chat/sessions');
@@ -119,7 +119,7 @@ export const getSessions = async (): Promise<ChatSession[]> => {
 };
 
 /**
- * 获取会话历史
+ * Get session history
  */
 export const getSessionHistory = async (sessionId: string): Promise<ChatHistory> => {
   const response = await api.get(`/chat/sessions/${sessionId}`);
@@ -127,17 +127,18 @@ export const getSessionHistory = async (sessionId: string): Promise<ChatHistory>
 };
 
 /**
- * 删除会话
+ * Delete session
  */
 export const deleteSession = async (sessionId: string): Promise<void> => {
   await api.delete(`/chat/sessions/${sessionId}`);
 };
 
 /**
- * 创建新会话
+ * Create new session
  */
 export const createNewSession = async (): Promise<string> => {
   const response = await api.post('/chat/sessions/new');
   return response.data.session_id;
 };
+
 

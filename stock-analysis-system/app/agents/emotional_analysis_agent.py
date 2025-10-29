@@ -197,19 +197,19 @@ class EmotionalAnalysisAgent(BaseAgent):
             Sentiment trend analysis
         """
         if not news_data:
-            return {"trend": "STABLE", "change": 0, "description": "没有足够的数据"}
+            return {"trend": "STABLE", "change": 0, "description": "Not enough data"}
         
         # Sort by date
         try:
             sorted_news = sorted(news_data, key=lambda x: x.get("published_at", ""))
         except:
             # If sorting fails, assume no trend
-            return {"trend": "STABLE", "change": 0, "description": "无法分析趋势"}
+            return {"trend": "STABLE", "change": 0, "description": "Unable to analyze trend"}
         
         # Split into two halves
         mid = len(sorted_news) // 2
         if mid < 1:
-            return {"trend": "STABLE", "change": 0, "description": "数据量不足"}
+            return {"trend": "STABLE", "change": 0, "description": "Insufficient data"}
         
         first_half = sorted_news[:mid]
         second_half = sorted_news[mid:]
@@ -250,7 +250,7 @@ class EmotionalAnalysisAgent(BaseAgent):
             "change": round(change, 2),
             "first_half_sentiment": round(first_avg, 2),
             "second_half_sentiment": round(second_avg, 2),
-            "description": f"{trend_emoji} 情绪 {'改善' if change > 0 else '恶化' if change < 0 else '稳定'}，变化 {abs(change):.2f}"
+            "description": f"{trend_emoji} Sentiment {'improving' if change > 0 else 'worsening' if change < 0 else 'stable'}, change {abs(change):.2f}"
         }
     
     def categorize_news_sentiment(self, news_data: List[Dict[str, Any]]) -> Dict[str, Any]:

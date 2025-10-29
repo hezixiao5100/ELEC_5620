@@ -7,26 +7,26 @@ from datetime import datetime
 
 
 class ChatMessageRequest(BaseModel):
-    """聊天消息请求"""
-    message: str = Field(..., description="用户输入的消息")
-    session_id: str = Field(..., description="会话 ID")
+    """Chat message request"""
+    message: str = Field(..., description="User input message")
+    session_id: str = Field(..., description="Session ID")
 
 
 class ChatMessageResponse(BaseModel):
-    """聊天消息响应"""
-    role: str = Field(..., description="消息角色：user/assistant")
-    content: str = Field(..., description="消息内容")
-    function_name: Optional[str] = Field(None, description="调用的函数名")
-    function_args: Optional[Dict[str, Any]] = Field(None, description="函数参数")
-    metadata: Optional[Dict[str, Any]] = Field(None, description="额外元数据")
-    created_at: datetime = Field(..., description="创建时间")
+    """Chat message response"""
+    role: str = Field(..., description="Message role: user/assistant")
+    content: str = Field(..., description="Message content")
+    function_name: Optional[str] = Field(None, description="Called function name")
+    function_args: Optional[Dict[str, Any]] = Field(None, description="Function arguments")
+    metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
+    created_at: datetime = Field(..., description="Creation time")
     
     class Config:
         from_attributes = True
 
 
 class ChatSessionResponse(BaseModel):
-    """会话响应"""
+    """Session response"""
     session_id: str
     message_count: int
     last_message_at: Optional[datetime]
@@ -34,7 +34,7 @@ class ChatSessionResponse(BaseModel):
 
 
 class ChatHistoryResponse(BaseModel):
-    """会话历史响应"""
+    """Session history response"""
     session_id: str
     messages: List[ChatMessageResponse]
     
@@ -43,9 +43,10 @@ class ChatHistoryResponse(BaseModel):
 
 
 class StreamChunk(BaseModel):
-    """流式响应数据块"""
+    """Streaming response chunk"""
     content: Optional[str] = None
     function_call: Optional[Dict[str, Any]] = None
     done: bool = False
     error: Optional[str] = None
+
 

@@ -186,7 +186,7 @@ const AdminLayout: React.FC = () => {
   );
 };
 
-// Placeholder components (类若依后台风格)
+// Placeholder components (Admin panel style)
 
 const RoleManagementPlaceholder: React.FC = () => (
   <div>

@@ -1,6 +1,6 @@
 """
 Chat API Endpoints
-AI 分析助手的 API 接口
+API endpoints for the AI analysis assistant
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
@@ -24,7 +24,7 @@ from app.services.ai.langchain_service import get_chat_service
 from app.services.auth_service import get_current_active_user
 
 logger = logging.getLogger(__name__)
-router = APIRouter(tags=["AI Chat"])  # prefix 在 main.py 中已经设置为 /chat
+router = APIRouter(tags=["AI Chat"])  # prefix is set to /chat in main.py
 
 
 @router.post("/message", response_model=ChatMessageResponse)
@@ -34,12 +34,12 @@ async def send_message(
     db: Session = Depends(get_db)
 ):
     """
-    发送消息给 AI（非流式）
+    Send message to AI (non-streaming)
     """
     try:
         chat_service = get_chat_service()
         
-        # 保存用户消息
+        # Save user message
         user_message = ChatMessageModel(
             user_id=current_user.id,
             session_id=request.session_id,
@@ -50,7 +50,7 @@ async def send_message(
         db.add(user_message)
         db.commit()
         
-        # 调用 LangChain Agent
+        # Call LangChain Agent
         result = await chat_service.chat(
             user_input=request.message,
             session_id=request.session_id,
@@ -63,7 +63,7 @@ async def send_message(
                 detail=result.get("error", "Unknown error")
             )
         
-        # 保存 AI 响应
+        # Save AI response
         ai_message = ChatMessageModel(
             user_id=current_user.id,
             session_id=request.session_id,
@@ -101,12 +101,12 @@ async def stream_message(
     db: Session = Depends(get_db)
 ):
     """
-    发送消息给 AI（流式响应 - Server-Sent Events）
+    Send message to AI (streaming response - Server-Sent Events)
     """
     try:
         chat_service = get_chat_service()
         
-        # 保存用户消息
+        # Save user message
         user_message = ChatMessageModel(
             user_id=current_user.id,
             session_id=request.session_id,
@@ -117,14 +117,14 @@ async def stream_message(
         db.add(user_message)
         db.commit()
         
-        # 流式响应生成器
+        # Streaming response generator
         async def event_generator():
             full_response = ""
             try:
-                # 发送开始信号
+                # Send start signal
                 yield f"data: {json.dumps({'type': 'start', 'content': ''})}\n\n"
                 
-                # 流式获取响应
+                # Stream response
                 async for chunk in chat_service.chat_stream(
                     user_input=request.message,
                     session_id=request.session_id,
@@ -133,7 +133,7 @@ async def stream_message(
                     full_response += chunk
                     yield f"data: {json.dumps({'type': 'content', 'content': chunk})}\n\n"
                 
-                # 保存完整的 AI 响应到数据库
+                # Save full AI response to DB
                 ai_message = ChatMessageModel(
                     user_id=current_user.id,
                     session_id=request.session_id,
@@ -144,7 +144,7 @@ async def stream_message(
                 db.add(ai_message)
                 db.commit()
                 
-                # 发送完成信号
+                # Send done signal
                 yield f"data: {json.dumps({'type': 'done', 'content': ''})}\n\n"
                 
             except Exception as e:
@@ -157,7 +157,7 @@ async def stream_message(
             headers={
                 "Cache-Control": "no-cache",
                 "Connection": "keep-alive",
-                "X-Accel-Buffering": "no"  # 禁用 nginx 缓冲
+                "X-Accel-Buffering": "no"  # disable nginx buffering
             }
         )
         
@@ -175,10 +175,10 @@ async def get_sessions(
     db: Session = Depends(get_db)
 ):
     """
-    获取用户的所有会话列表
+    Get all sessions for the current user
     """
     try:
-        # 查询用户的所有会话
+        # Query all sessions for user
         sessions = db.query(
             ChatMessageModel.session_id,
             db.func.count(ChatMessageModel.id).label("message_count"),
@@ -217,7 +217,7 @@ async def get_session_history(
     db: Session = Depends(get_db)
 ):
     """
-    获取指定会话的历史消息
+    Get historical messages for a given session
     """
     try:
         messages = db.query(ChatMessageModel).filter(
@@ -257,17 +257,17 @@ async def delete_session(
     db: Session = Depends(get_db)
 ):
     """
-    删除指定会话
+    Delete a specific session
     """
     try:
-        # 删除数据库中的消息
+        # Delete DB messages
         db.query(ChatMessageModel).filter(
             ChatMessageModel.user_id == current_user.id,
             ChatMessageModel.session_id == session_id
         ).delete()
         db.commit()
         
-        # 清除内存中的会话历史
+        # Clear in-memory session history
         chat_service = get_chat_service()
         chat_service.clear_session(session_id)
         
@@ -287,7 +287,7 @@ async def create_new_session(
     current_user: User = Depends(get_current_active_user)
 ):
     """
-    创建新会话（返回新的 session_id）
+    Create a new session (returns new session_id)
     """
     session_id = f"session_{uuid.uuid4().hex[:16]}"
     return {"session_id": session_id}

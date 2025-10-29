@@ -247,37 +247,37 @@ class RiskAnalysisAgent(BaseAgent):
         
         # Based on volatility
         if volatility > 40:
-            recommendations.append("⚠️ 高波动性：建议控制仓位，避免过度集中")
+            recommendations.append("⚠️ High volatility: control position size and avoid over-concentration")
         elif volatility < 15:
-            recommendations.append("✅ 低波动性：相对稳定，适合保守投资者")
+            recommendations.append("✅ Low volatility: relatively stable, suitable for conservative investors")
         
         # Based on max drawdown
         if max_drawdown < -30:
-            recommendations.append("⚠️ 大幅回撤风险：历史上曾有较大跌幅，需要谨慎")
+            recommendations.append("⚠️ Large drawdown risk: historically experienced significant declines; be cautious")
         elif max_drawdown < -20:
-            recommendations.append("⚠️ 中等回撤：历史上有明显的价格回调")
+            recommendations.append("⚠️ Moderate drawdown: historically had noticeable pullbacks")
         
         # Based on Beta
         if beta > 1.5:
-            recommendations.append("⚠️ 高 Beta：该股票波动性高于市场平均水平，适合风险偏好较高的投资者")
+            recommendations.append("⚠️ High Beta: volatility above market average; suits higher risk appetite")
         elif beta < 0.5:
-            recommendations.append("✅ 低 Beta：该股票相对稳定，与市场相关性较低")
+            recommendations.append("✅ Low Beta: relatively stable with lower market correlation")
         
         # Based on Sharpe ratio
         if sharpe < 0:
-            recommendations.append("⚠️ 负夏普比率：风险调整后收益为负，投资回报不佳")
+            recommendations.append("⚠️ Negative Sharpe ratio: risk-adjusted return is negative")
         elif sharpe > 1.0:
-            recommendations.append("✅ 良好的风险收益比：夏普比率 > 1.0，风险调整后收益较好")
+            recommendations.append("✅ Good risk-return profile: Sharpe ratio > 1.0")
         elif sharpe > 0.5:
-            recommendations.append("✓ 合理的风险收益比：夏普比率在可接受范围内")
+            recommendations.append("✓ Reasonable risk-return profile: Sharpe ratio within acceptable range")
         
         # Based on overall risk level
         if risk_level == "VERY_HIGH":
-            recommendations.append("🔴 极高风险：建议谨慎投资，仅适合风险承受能力极强的投资者")
+            recommendations.append("🔴 Very high risk: invest cautiously; suitable only for very high risk tolerance")
         elif risk_level == "HIGH":
-            recommendations.append("🟠 高风险：建议严格控制仓位，密切关注市场变化")
+            recommendations.append("🟠 High risk: strictly control position size and monitor markets closely")
         
         if not recommendations:
-            recommendations.append("✅ 风险指标在合理范围内")
+            recommendations.append("✅ Risk metrics are within reasonable range")
         
         return recommendations
