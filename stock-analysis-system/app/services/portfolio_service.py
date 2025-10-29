@@ -12,6 +12,7 @@ from app.schemas.portfolio import Portfolio, PortfolioCreate, PortfolioUpdate, P
 from app.models.portfolio import Portfolio as PortfolioModel
 from app.models.stock import Stock as StockModel
 from app.models.alert import Alert as AlertModel, AlertStatus
+from app.models.stock_data import StockData as StockDataModel
 from app.services.monitoring_service import MonitoringService
 
 
@@ -203,9 +204,34 @@ class PortfolioService:
             if total_cost_basis > 0:
                 total_profit_loss_pct = (total_profit_loss / total_cost_basis) * 100
             
-            # Get today's gain (simplified - comparing to yesterday's close)
-            # In real implementation, you'd need historical data
-            today_gain_pct = 0.0  # Placeholder
+            # Compute today's gain based on previous close vs latest close per holding
+            yesterday_total_value = 0.0
+            today_total_value = 0.0
+            try:
+                for holding in self.db.query(PortfolioModel).filter(PortfolioModel.user_id == user_id).all():
+                    # Fetch last two closing prices (latest first)
+                    prices = self.db.query(StockDataModel).filter(
+                        StockDataModel.stock_id == holding.stock_id
+                    ).order_by(StockDataModel.timestamp.desc()).limit(2).all()
+                    if len(prices) >= 2:
+                        latest_close = float(prices[0].close_price)
+                        prev_close = float(prices[1].close_price)
+                    elif len(prices) == 1:
+                        latest_close = float(prices[0].close_price)
+                        prev_close = float(prices[0].close_price)
+                    else:
+                        # Fall back to current price and purchase price if no history
+                        latest_close = float(holding.stock.current_price or holding.purchase_price)
+                        prev_close = float(holding.stock.current_price or holding.purchase_price)
+                    today_total_value += holding.quantity * latest_close
+                    yesterday_total_value += holding.quantity * prev_close
+            except Exception as e:
+                self.logger.warning(f"Failed to compute today's gain from history: {str(e)}")
+                yesterday_total_value = 0.0
+                today_total_value = total_value
+            
+            today_gain_amount = today_total_value - yesterday_total_value if yesterday_total_value > 0 else 0.0
+            today_gain_pct = (today_gain_amount / yesterday_total_value * 100) if yesterday_total_value > 0 else 0.0
             
             # Get active alerts count
             active_alerts = self.db.query(AlertModel).filter(
@@ -221,7 +247,7 @@ class PortfolioService:
                 total_value=total_value,
                 total_profit_loss=total_profit_loss,
                 total_profit_loss_pct=total_profit_loss_pct,
-                today_gain=total_profit_loss,  # Simplified
+                today_gain=today_gain_amount,
                 today_gain_pct=today_gain_pct,
                 active_alerts=active_alerts
             )
@@ -318,5 +344,6 @@ class PortfolioService:
                 created_at=holding.created_at,
                 updated_at=holding.updated_at
             )
+
 
 

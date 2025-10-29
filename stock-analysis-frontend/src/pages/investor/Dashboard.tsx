@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Row, Col, Card, Statistic, Table, Tag, Button, Space, Spin, Empty } from 'antd';
 import {
   ArrowUpOutlined,
@@ -15,24 +15,26 @@ import type { TrackedStock } from '@/types';
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const isInitialLoad = useRef(true);
   const [trackedStocks, setTrackedStocks] = useState<TrackedStock[]>([]);
   const [portfolioSummary, setPortfolioSummary] = useState<any>(null);
 
   useEffect(() => {
-    loadDashboardData();
+    loadDashboardData(true);
     
-    // Auto-refresh dashboard every 60 seconds
+    // Auto-refresh dashboard every 60 seconds without global loading spinner
     const interval = setInterval(() => {
-      loadDashboardData();
-    }, 60000); // 60 seconds
+      loadDashboardData(false);
+    }, 60000);
     
-    // Cleanup interval on component unmount
     return () => clearInterval(interval);
   }, []);
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = async (initial: boolean = false) => {
     try {
-      setLoading(true);
+      if (initial && isInitialLoad.current) {
+        setLoading(true);
+      }
       const [stocks, summary] = await Promise.all([
         stockService.getTrackedStocks(),
         stockService.getPortfolioSummary().catch(() => null),
@@ -42,7 +44,10 @@ const Dashboard: React.FC = () => {
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
     } finally {
-      setLoading(false);
+      if (initial && isInitialLoad.current) {
+        setLoading(false);
+        isInitialLoad.current = false;
+      }
     }
   };
 
@@ -124,7 +129,7 @@ const Dashboard: React.FC = () => {
           <Card>
             <Statistic
               title="Today's Gain"
-              value={portfolioSummary?.today_gain || 0}
+              value={portfolioSummary?.today_gain_pct || 0}
               precision={2}
               prefix={<RiseOutlined />}
               valueStyle={{ color: '#3f8600' }}
