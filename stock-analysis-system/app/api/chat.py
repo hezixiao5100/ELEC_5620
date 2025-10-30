@@ -38,6 +38,14 @@ async def send_message(
     """
     try:
         chat_service = get_chat_service()
+        # Determine target user to analyze
+        target_user_id = current_user.id
+        try:
+            # Basic role/permission gate: if advisor and subject_user_id provided, switch context
+            if getattr(current_user, "role", None) in ("ADVISOR", "advisor", "Advisor") and request.subject_user_id:
+                target_user_id = int(request.subject_user_id)
+        except Exception:
+            target_user_id = current_user.id
         
         # Save user message
         user_message = ChatMessageModel(
@@ -45,6 +53,7 @@ async def send_message(
             session_id=request.session_id,
             role=MessageRole.USER,
             content=request.message,
+            extra_data={"subject_user_id": target_user_id} if target_user_id != current_user.id else None,
             created_at=datetime.utcnow()
         )
         db.add(user_message)
@@ -54,7 +63,7 @@ async def send_message(
         result = await chat_service.chat(
             user_input=request.message,
             session_id=request.session_id,
-            user_id=current_user.id
+            user_id=target_user_id
         )
         
         if result["status"] == "error":
@@ -69,7 +78,10 @@ async def send_message(
             session_id=request.session_id,
             role=MessageRole.ASSISTANT,
             content=result["response"],
-            extra_data={"intermediate_steps": result.get("intermediate_steps", [])},
+            extra_data={
+                "intermediate_steps": result.get("intermediate_steps", []),
+                "subject_user_id": target_user_id if target_user_id != current_user.id else None
+            },
             created_at=datetime.utcnow()
         )
         db.add(ai_message)
@@ -105,6 +117,13 @@ async def stream_message(
     """
     try:
         chat_service = get_chat_service()
+        # Determine target user to analyze
+        target_user_id = current_user.id
+        try:
+            if getattr(current_user, "role", None) in ("ADVISOR", "advisor", "Advisor") and request.subject_user_id:
+                target_user_id = int(request.subject_user_id)
+        except Exception:
+            target_user_id = current_user.id
         
         # Save user message
         user_message = ChatMessageModel(
@@ -112,6 +131,7 @@ async def stream_message(
             session_id=request.session_id,
             role=MessageRole.USER,
             content=request.message,
+            extra_data={"subject_user_id": target_user_id} if target_user_id != current_user.id else None,
             created_at=datetime.utcnow()
         )
         db.add(user_message)
@@ -128,7 +148,7 @@ async def stream_message(
                 async for chunk in chat_service.chat_stream(
                     user_input=request.message,
                     session_id=request.session_id,
-                    user_id=current_user.id
+                    user_id=target_user_id
                 ):
                     full_response += chunk
                     yield f"data: {json.dumps({'type': 'content', 'content': chunk})}\n\n"
@@ -139,6 +159,7 @@ async def stream_message(
                     session_id=request.session_id,
                     role=MessageRole.ASSISTANT,
                     content=full_response,
+                    extra_data={"subject_user_id": target_user_id} if target_user_id != current_user.id else None,
                     created_at=datetime.utcnow()
                 )
                 db.add(ai_message)

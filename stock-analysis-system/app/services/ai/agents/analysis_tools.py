@@ -35,7 +35,7 @@ class PortfolioRiskInput(BaseModel):
 
 class MarketSentimentInput(BaseModel):
     """Market sentiment analysis input"""
-    scope: str = Field(default="market", description="Analysis scope: market, stock, or sector")
+    scope: str = Field(default="market", description="Analysis scope: market, stock, sector, or portfolio")
     symbol: Optional[str] = Field(default=None, description="Stock symbol (if analyzing specific stock)")
     time_range: str = Field(default="today", description="Time range: today, week, or month")
 
@@ -219,7 +219,7 @@ def analyze_market_sentiment(
     user_id: int,
     scope: str = "market",
     symbol: Optional[str] = None,
-    time_range: str = "today"
+    time_range: str = "week"
 ) -> Dict[str, Any]:
     """
     Analyze market sentiment (calls EmotionalAnalysisAgent)
@@ -234,7 +234,32 @@ def analyze_market_sentiment(
         db = SessionLocal()
         
         # Prepare data
-        if symbol:
+        if scope in ("portfolio", "client_portfolio") and not symbol:
+            # Portfolio-wide sentiment: cap news per stock to limit tokens
+            days_map = {"today": 1, "week": 7, "month": 30}
+            days = days_map.get(time_range, 7)
+            try:
+                from app.agents.portfolio_sentiment_agent import PortfolioSentimentAgent
+                psa = PortfolioSentimentAgent(db=db)
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    psa_result = loop.run_until_complete(psa.execute_task({
+                        "user_id": user_id,
+                        "per_stock_limit": 3,
+                        "days": days
+                    }))
+                finally:
+                    loop.close()
+                news_data = psa_result.get("news_data", [])
+                top_news = psa_result.get("top_news", [])
+                news_brief = psa_result.get("news_brief", f"Portfolio news collected: {len(news_data)} articles (<=3 per stock).")
+            except Exception:
+                news_data = []
+                top_news = []
+                news_brief = ""
+            stock_data = {"symbol": "PORTFOLIO", "price_change_percent": 0, "volume": 0}
+        elif symbol:
             stock = db.query(StockModel).filter(StockModel.symbol == symbol.upper()).first()
             if not stock:
                 db.close()
@@ -252,16 +277,55 @@ def analyze_market_sentiment(
                 NewsModel.stock_id == stock.id,
                 NewsModel.published_at >= cutoff_date
             ).order_by(NewsModel.published_at.desc()).all()
+
+            # If no news found, try to proactively collect fresh data via DataCollectionAgent
+            if not news_items:
+                try:
+                    agent = DataCollectionAgent(db=db)
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    try:
+                        _ = loop.run_until_complete(agent.execute_task({"symbol": symbol.upper()}))
+                    finally:
+                        loop.close()
+                    # Re-query news after collection (limit to fresh window)
+                    news_items = db.query(NewsModel).filter(
+                        NewsModel.stock_id == stock.id,
+                        NewsModel.published_at >= cutoff_date
+                    ).order_by(NewsModel.published_at.desc()).all()
+                except Exception:
+                    # Swallow collection errors and continue with empty news
+                    news_items = []
             
             news_data = [
                 {
                     "title": n.title,
                     "content": n.content or "",
                     "sentiment": "positive" if n.sentiment_score and n.sentiment_score > 0.3 else ("negative" if n.sentiment_score and n.sentiment_score < -0.3 else "neutral"),
-                    "published_at": n.published_at.isoformat()
+                    "published_at": n.published_at.isoformat(),
+                    "url": n.url,
+                    "source": n.source or ""
                 }
                 for n in news_items
             ]
+
+            # Prepare top news list for client rendering with links
+            top_news = [
+                {
+                    "title": n.title,
+                    "url": n.url,
+                    "source": n.source or "",
+                    "published_at": n.published_at.isoformat(),
+                    "sentiment_score": n.sentiment_score
+                }
+                for n in news_items[:5]
+            ]
+
+            # Quick news sentiment stats for a concise explanation
+            pos_cnt = sum(1 for n in news_data if n["sentiment"] == "positive")
+            neg_cnt = sum(1 for n in news_data if n["sentiment"] == "negative")
+            neu_cnt = sum(1 for n in news_data if n["sentiment"] == "neutral")
+            news_brief = f"Recent news sentiment — Positive: {pos_cnt}, Neutral: {neu_cnt}, Negative: {neg_cnt}."
             
             stock_data = {
                 "symbol": stock.symbol,
@@ -269,8 +333,28 @@ def analyze_market_sentiment(
                 "price_change_percent": 0  # Simplified
             }
         else:
-            news_data = []
-            stock_data = {}
+            # Fallback: treat as portfolio sentiment if no symbol provided
+            try:
+                from app.agents.portfolio_sentiment_agent import PortfolioSentimentAgent
+                days_map = {"today": 1, "week": 7, "month": 30}
+                days = days_map.get(time_range, 7)
+                psa = PortfolioSentimentAgent(db=db)
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    result = loop.run_until_complete(psa.execute_task({
+                        "user_id": user_id,
+                        "per_stock_limit": 3,
+                        "days": days
+                    }))
+                finally:
+                    loop.close()
+                news_data = result.get("news_data", [])
+                news_brief = f"Portfolio news collected: {len(news_data)} articles (<=3 per stock)."
+            except Exception:
+                news_data = []
+                news_brief = ""
+            stock_data = {"symbol": "PORTFOLIO", "price_change_percent": 0, "volume": 0}
         
         # Call EmotionalAnalysisAgent
         agent = EmotionalAnalysisAgent()
@@ -293,7 +377,9 @@ def analyze_market_sentiment(
             "sentiment": result.get("news_sentiment", {}),
             "market_sentiment": result.get("market_sentiment", {}),
             "fear_greed_index": result.get("fear_greed_index", {}),
-            "summary": f"Market sentiment analysis completed. Signal: {result.get('emotional_signal', 'NEUTRAL')}"
+            "summary": f"Market sentiment analysis completed. Signal: {result.get('emotional_signal', 'NEUTRAL')}",
+            "top_news": top_news if symbol else [],
+            "news_brief": news_brief if symbol else ""
         }
         
     except Exception as e:
@@ -333,6 +419,20 @@ def analyze_stock_performance(
         days = period_days_map.get(time_period, 30)
         historical_data = get_stock_historical_data(db, symbol, days)
         
+        if not historical_data:
+            # Try to collect data automatically
+            try:
+                agent = DataCollectionAgent(db=db)
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    _ = loop.run_until_complete(agent.execute_task({"symbol": symbol.upper()}))
+                finally:
+                    loop.close()
+                # Re-fetch
+                historical_data = get_stock_historical_data(db, symbol, days)
+            except Exception:
+                historical_data = []
         if not historical_data:
             db.close()
             return {
@@ -762,6 +862,20 @@ def analyze_stock_risk(
         days = period_days_map.get(time_period, 90)
         historical_data = get_stock_historical_data(db, symbol, days)
         
+        if not historical_data:
+            # Try to collect data automatically
+            try:
+                agent = DataCollectionAgent(db=db)
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    _ = loop.run_until_complete(agent.execute_task({"symbol": symbol.upper()}))
+                finally:
+                    loop.close()
+                # Re-fetch
+                historical_data = get_stock_historical_data(db, symbol, days)
+            except Exception:
+                historical_data = []
         if not historical_data:
             db.close()
             return {

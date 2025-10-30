@@ -33,6 +33,25 @@ from app.services.ai.agents.analysis_tools import (
     StockRiskInput
 )
 
+from app.services.ai.agents.portfolio_management_agent import (
+    view_portfolio,
+    list_tracked_stocks,
+    ViewPortfolioInput,
+    ListTrackedStocksInput,
+    add_holding,
+    update_holding,
+    delete_holding,
+    track_stock,
+    untrack_stock,
+    AddHoldingInput,
+    UpdateHoldingInput,
+    DeleteHoldingInput,
+    TrackStockInput,
+    UntrackStockInput,
+    reduce_holding,
+    ReduceHoldingInput
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -83,8 +102,8 @@ Communication style:
 - Format responses with clear sections and bullet points
 
 Important notes:
-- You can only ANALYZE data, NOT execute trades or modify alerts/portfolio
-- If users ask to buy/sell stocks or create/delete alerts, politely explain this interface is for analysis only
+- Portfolio management actions (add/update/delete holdings, track/untrack) are ALLOWED via tools and REQUIRE a two-step confirmation (draft → confirm). You MUST follow the confirmation workflow below.
+- You cannot execute real trades; operations only modify the internal tracking portfolio.
 - Always cite the specific data sources when presenting numbers
 - **USER IDENTITY**: The user is already authenticated. You DON'T need to ask for user ID or login info.
   All tools automatically access the logged-in user's data. Just call the tools directly.
@@ -94,6 +113,20 @@ Important notes:
 - The data collection is limited to the last 3 days (max 7 days) to keep it fast and relevant
 - After collecting data, you can immediately use other analysis tools to provide insights
 - Example workflow: User asks about MSFT sentiment → No news found → Call collect_stock_data(MSFT) → Then call analyze_stock_news(MSFT)
+
+CONFIRMATION WORKFLOW FOR WRITE OPERATIONS:
+- Some portfolio tools return a DRAFT first with fields {status:"draft", token, diff_summary}.
+- When the user replies with messages like "confirm <token>" or "cancel <token>", you MUST call the same tool again with confirm=true and token=<token> (or discard for cancel).
+- Always echo a concise summary of the executed change after confirmation.
+
+OUTPUT FORMAT FOR TOOL RESULTS:
+- When a tool returns an object containing a field named "status" or "token", you MUST render the raw JSON payload inside a fenced code block using the json language tag, e.g.:
+```
+```json
+{ "status": "draft", "token": "abc123", "diff_summary": "..." }
+```
+```
+- Place any natural language explanation BEFORE or AFTER the code block, but DO NOT modify keys/values inside the JSON.
 
 Remember: Be helpful, accurate, and insightful! Don't hesitate to collect fresh data when needed."""
         
@@ -116,7 +149,7 @@ Remember: Be helpful, accurate, and insightful! Don't hesitate to collect fresh 
             StructuredTool.from_function(
                 func=partial(analyze_market_sentiment, user_id=user_id),
                 name="analyze_market_sentiment",
-                description="Analyze market or specific stock sentiment including bullish/bearish trends and price changes. Use when users ask 'How's the market sentiment?' or 'What's the sentiment for a stock?'.",
+                description="Analyze market, portfolio, or specific stock sentiment. Use for: 'analyze this client's portfolio sentiment' (scope=portfolio) or 'what's sentiment for NVDA' (scope=stock, symbol=NVDA).",
                 args_schema=MarketSentimentInput
             ),
             StructuredTool.from_function(
@@ -160,6 +193,56 @@ Remember: Be helpful, accurate, and insightful! Don't hesitate to collect fresh 
                 name="analyze_stock_risk",
                 description="Analyze an individual stock's risk (volatility, max drawdown, Beta, risk level). Note: for single stock, not portfolio.",
                 args_schema=StockRiskInput
+            ),
+            # Portfolio Management (P0 - read-only)
+            StructuredTool.from_function(
+                func=partial(view_portfolio, user_id=user_id),
+                name="view_portfolio",
+                description="View the user's or selected client's portfolio holdings with optional summary. Use for: 'show my/client portfolio'.",
+                args_schema=ViewPortfolioInput
+            ),
+            StructuredTool.from_function(
+                func=partial(list_tracked_stocks, user_id=user_id),
+                name="list_tracked_stocks",
+                description="List tracked stocks for the user/client, including baseline price if available. Use for: 'what stocks am I tracking?'.",
+                args_schema=ListTrackedStocksInput
+            ),
+            # Write operations with two-step confirmation
+            StructuredTool.from_function(
+                func=partial(add_holding, user_id=user_id),
+                name="add_holding",
+                description="Create a new portfolio holding. This tool uses a two-step confirmation: first returns a draft and token, then execute with confirm=true and token.",
+                args_schema=AddHoldingInput
+            ),
+            StructuredTool.from_function(
+                func=partial(update_holding, user_id=user_id),
+                name="update_holding",
+                description="Update an existing holding (quantity/price/notes). Two-step confirmation required.",
+                args_schema=UpdateHoldingInput
+            ),
+            StructuredTool.from_function(
+                func=partial(delete_holding, user_id=user_id),
+                name="delete_holding",
+                description="Delete a holding by id. Two-step confirmation required.",
+                args_schema=DeleteHoldingInput
+            ),
+            StructuredTool.from_function(
+                func=partial(track_stock, user_id=user_id),
+                name="track_stock",
+                description="Start tracking a stock for the user/client with optional baseline price. Two-step confirmation required.",
+                args_schema=TrackStockInput
+            ),
+            StructuredTool.from_function(
+                func=partial(untrack_stock, user_id=user_id),
+                name="untrack_stock",
+                description="Stop tracking a stock. Two-step confirmation required.",
+                args_schema=UntrackStockInput
+            ),
+            StructuredTool.from_function(
+                func=partial(reduce_holding, user_id=user_id),
+                name="reduce_holding",
+                description="Reduce an existing holding by quantity (keeps average cost unchanged). Two-step confirmation required.",
+                args_schema=ReduceHoldingInput
             )
         ]
         
