@@ -6,7 +6,7 @@ import openai
 from typing import Dict, Any, List
 import json
 import logging
-import os
+from app.config import settings
 
 class AIAnalysisService:
     """
@@ -15,8 +15,8 @@ class AIAnalysisService:
     
     def __init__(self):
         self.logger = logging.getLogger("ai_analysis_service")
-        self.client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        self.model = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
+        self.client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
+        self.model = settings.OPENAI_MODEL
     
     async def analyze_stock_with_ai(self, stock_data: Dict[str, Any], news_data: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
