@@ -68,8 +68,8 @@ celerybeat-schedule-shm
 celerybeat-schedule-wal
 
 # Backup files
-*.backup
-.env.backup
+
+
 
 # Demo and setup files
 demo_*.py
