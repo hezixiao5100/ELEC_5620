@@ -102,9 +102,30 @@ async def stream_message(
 ):
     """
     Send message to AI (streaming response - Server-Sent Events)
+    
+    For advisor mode: if subject_user_id is provided, use it for portfolio operations.
+    Otherwise, use current_user.id (investor mode).
     """
     try:
         chat_service = get_chat_service()
+        
+        # Determine target user_id: use subject_user_id if provided (advisor mode), otherwise current_user.id
+        target_user_id = request.subject_user_id if request.subject_user_id is not None else current_user.id
+        
+        # Validate: if subject_user_id is provided, current_user must be advisor/admin
+        if request.subject_user_id is not None:
+            if current_user.role not in ['ADVISOR', 'ADMIN']:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Only advisors and admins can use subject_user_id"
+                )
+            # Verify subject_user_id is a valid investor
+            subject_user = db.query(User).filter(User.id == request.subject_user_id).first()
+            if not subject_user or subject_user.role != 'INVESTOR':
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Invalid subject_user_id: must be an INVESTOR"
+                )
         
         # Save user message
         user_message = ChatMessageModel(
@@ -124,11 +145,11 @@ async def stream_message(
                 # Send start signal
                 yield f"data: {json.dumps({'type': 'start', 'content': ''})}\n\n"
                 
-                # Stream response
+                # Stream response - use target_user_id for portfolio operations
                 async for chunk in chat_service.chat_stream(
                     user_input=request.message,
                     session_id=request.session_id,
-                    user_id=current_user.id
+                    user_id=target_user_id
                 ):
                     full_response += chunk
                     yield f"data: {json.dumps({'type': 'content', 'content': chunk})}\n\n"

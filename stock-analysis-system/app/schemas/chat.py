@@ -10,6 +10,7 @@ class ChatMessageRequest(BaseModel):
     """Chat message request"""
     message: str = Field(..., description="User input message")
     session_id: str = Field(..., description="Session ID")
+    subject_user_id: Optional[int] = Field(None, description="Subject user ID for advisor mode (client's user_id)")
 
 
 class ChatMessageResponse(BaseModel):
