@@ -33,6 +33,25 @@ from app.services.ai.agents.analysis_tools import (
     StockRiskInput
 )
 
+from app.services.ai.agents.portfolio_management_agent import (
+    view_portfolio,
+    list_tracked_stocks,
+    add_holding,
+    update_holding,
+    delete_holding,
+    track_stock,
+    untrack_stock,
+    reduce_holding,
+    ViewPortfolioInput,
+    ListTrackedStocksInput,
+    AddHoldingInput,
+    UpdateHoldingInput,
+    DeleteHoldingInput,
+    TrackStockInput,
+    UntrackStockInput,
+    ReduceHoldingInput
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -83,8 +102,9 @@ Communication style:
 - Format responses with clear sections and bullet points
 
 Important notes:
-- You can only ANALYZE data, NOT execute trades or modify alerts/portfolio
-- If users ask to buy/sell stocks or create/delete alerts, politely explain this interface is for analysis only
+- You CAN manage portfolio holdings (add, update, delete, reduce) through confirmation workflow
+- Portfolio operations use two-step confirmation: first return draft with token, then execute with confirm=true and token
+- When returning draft results, format as JSON code block and explain the operation clearly
 - Always cite the specific data sources when presenting numbers
 - **USER IDENTITY**: The user is already authenticated. You DON'T need to ask for user ID or login info.
   All tools automatically access the logged-in user's data. Just call the tools directly.
@@ -160,6 +180,55 @@ Remember: Be helpful, accurate, and insightful! Don't hesitate to collect fresh 
                 name="analyze_stock_risk",
                 description="Analyze an individual stock's risk (volatility, max drawdown, Beta, risk level). Note: for single stock, not portfolio.",
                 args_schema=StockRiskInput
+            ),
+            # Portfolio Management Tools (增删改查)
+            StructuredTool.from_function(
+                func=partial(view_portfolio, user_id=user_id),
+                name="view_portfolio",
+                description="View the user's portfolio holdings and summary. Use when users ask to see their portfolio, holdings, or current positions.",
+                args_schema=ViewPortfolioInput
+            ),
+            StructuredTool.from_function(
+                func=partial(list_tracked_stocks, user_id=user_id),
+                name="list_tracked_stocks",
+                description="List all stocks the user is tracking with their baseline prices. Use when users ask about tracked stocks or monitoring list.",
+                args_schema=ListTrackedStocksInput
+            ),
+            StructuredTool.from_function(
+                func=partial(add_holding, user_id=user_id),
+                name="add_holding",
+                description="Add a new stock holding to the portfolio. Use when users say 'add', 'buy', 'purchase' stocks. Returns draft first, needs confirmation.",
+                args_schema=AddHoldingInput
+            ),
+            StructuredTool.from_function(
+                func=partial(update_holding, user_id=user_id),
+                name="update_holding",
+                description="Update an existing holding's quantity, price, or notes. Use when users want to modify existing positions. Returns draft first, needs confirmation.",
+                args_schema=UpdateHoldingInput
+            ),
+            StructuredTool.from_function(
+                func=partial(delete_holding, user_id=user_id),
+                name="delete_holding",
+                description="Delete a holding from the portfolio. Use when users say 'remove', 'delete', 'sell all' of a stock. Returns draft first, needs confirmation.",
+                args_schema=DeleteHoldingInput
+            ),
+            StructuredTool.from_function(
+                func=partial(reduce_holding, user_id=user_id),
+                name="reduce_holding",
+                description="Reduce quantity of an existing holding. Use when users say 'reduce', 'sell', 'partially sell' stocks. Returns draft first, needs confirmation.",
+                args_schema=ReduceHoldingInput
+            ),
+            StructuredTool.from_function(
+                func=partial(track_stock, user_id=user_id),
+                name="track_stock",
+                description="Start tracking a stock with optional baseline price for alerts. Use when users want to monitor a stock. Returns draft first, needs confirmation.",
+                args_schema=TrackStockInput
+            ),
+            StructuredTool.from_function(
+                func=partial(untrack_stock, user_id=user_id),
+                name="untrack_stock",
+                description="Stop tracking a stock. Use when users want to remove a stock from monitoring. Returns draft first, needs confirmation.",
+                args_schema=UntrackStockInput
             )
         ]
         
