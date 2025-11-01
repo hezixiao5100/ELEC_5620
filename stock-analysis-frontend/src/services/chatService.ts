@@ -47,10 +47,20 @@ export const streamChatMessage = async (
   sessionId: string,
   onChunk: (content: string) => void,
   onComplete: () => void,
-  onError: (error: string) => void
+  onError: (error: string) => void,
+  options?: { subject_user_id?: number }
 ) => {
   try {
     const token = localStorage.getItem('access_token');
+    
+    const body: any = {
+      message,
+      session_id: sessionId
+    };
+    
+    if (options?.subject_user_id) {
+      body.subject_user_id = options.subject_user_id;
+    }
     
     const response = await fetch(`${api.defaults.baseURL}/chat/stream`, {
       method: 'POST',
@@ -58,10 +68,7 @@ export const streamChatMessage = async (
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify({
-        message,
-        session_id: sessionId
-      })
+      body: JSON.stringify(body)
     });
 
     if (!response.ok) {
