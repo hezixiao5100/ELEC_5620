@@ -55,6 +55,25 @@ from app.services.ai.agents.portfolio_management_agent import (
 logger = logging.getLogger(__name__)
 
 
+# Global model configuration (Admin can modify)
+_current_model = "gpt-4o-mini"  # Default model
+
+def get_current_model() -> str:
+    """Get current global AI model"""
+    global _current_model
+    return _current_model
+
+def set_current_model(model: str) -> bool:
+    """Set current global AI model (Admin only)"""
+    global _current_model
+    valid_models = ["gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo", "gpt-4-turbo", "gpt-4"]
+    if model in valid_models:
+        _current_model = model
+        logger.info(f"Global AI model changed to: {model}")
+        return True
+    return False
+
+
 class LangChainChatService:
     """LangChain Chat Service - using official LangGraph"""
     
@@ -67,14 +86,16 @@ class LangChainChatService:
             logger.warning("⚠️ OPENAI_API_KEY not set in .env file. AI chat will not work without a valid API key.")
             self.api_key = "dummy_key"  # Use dummy key to avoid initialization errors
         
-        # Initialize LLM
+        # Initialize LLM with global model configuration
         try:
+            current_model = get_current_model()
             self.llm = ChatOpenAI(
-                model="gpt-4o-mini",  # Using gpt-4o-mini for faster and cheaper operation
+                model=current_model,  # Use global model configuration
                 temperature=0.7,
                 streaming=True,
                 api_key=self.api_key
             )
+            logger.info(f"Initialized ChatOpenAI with model: {current_model}")
         except Exception as e:
             logger.error(f"Failed to initialize ChatOpenAI: {str(e)}")
             # Still create a basic object to avoid complete crash
