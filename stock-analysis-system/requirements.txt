@@ -1,15 +1,35 @@
+# Core Framework
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
+
+# Database
 sqlalchemy==2.0.36
 pymysql==1.1.0
+
+# Data Validation and Settings
 pydantic==2.8.2
 pydantic-settings==2.1.0
+
+# Authentication and Security
 python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
+passlib[argon2]==1.7.4  # Changed from bcrypt to argon2 (as used in code)
 python-multipart==0.0.6
+
+# Configuration
 python-dotenv==1.0.0
+
+# HTTP Client
 httpx==0.25.1
+
+# Task Scheduling
 APScheduler==3.11.0
+
+# Background Tasks (Celery)
+celery==5.3.4
+redis==5.0.1  # Required for Celery broker and backend
+
+# System Monitoring
+psutil==5.9.6  # Required for system metrics (CPU, Memory, Disk)
 
 # LangChain for AI Agent (using the latest official architecture)
 langchain
@@ -20,6 +40,5 @@ langgraph
 openai
 
 # Additional utilities
-yfinance
-
-
+yfinance==0.2.28  # Stock data from Yahoo Finance
+numpy==1.26.2  # Used in analysis agent for calculations
