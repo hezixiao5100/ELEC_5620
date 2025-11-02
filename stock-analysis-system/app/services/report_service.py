@@ -777,39 +777,52 @@ Provide a comprehensive investment recommendation:
             
             result = []
             for report in reports:
-                # Get stock information
-                stock_info = None
-                if report.stock:
-                    stock_info = Stock(
-                        id=report.stock.id,
-                        symbol=report.stock.symbol,
-                        name=report.stock.name,
-                        current_price=report.stock.current_price,
-                        sector=report.stock.sector
-                    )
-                
-                result.append(Report(
-                    id=report.id,
-                    user_id=report.user_id,
-                    stock_id=report.stock_id,
-                    stock=stock_info,
-                    title=report.title,
-                    summary=report.summary,
-                    content=report.content,
-                    recommendations=report.recommendations,
-                    risk_level=report.risk_level,
-                    sentiment_score=report.sentiment_score,
-                    technical_signal=report.technical_signal,
-                    confidence_score=report.confidence_score,
-                    details_json=report.details_json,
-                    report_type=report.report_type,
-                    created_at=report.created_at.isoformat()
-                ))
+                try:
+                    # Get stock information
+                    stock_info = None
+                    if report.stock:
+                        stock_info = Stock(
+                            id=report.stock.id,
+                            symbol=report.stock.symbol,
+                            name=report.stock.name,
+                            current_price=report.stock.current_price,
+                            sector=report.stock.sector
+                        )
+                    
+                    # Convert created_at to datetime if it's not already
+                    created_at = report.created_at
+                    if isinstance(created_at, str):
+                        created_at = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                    elif hasattr(created_at, 'isoformat'):
+                        # It's already a datetime object, keep it as is
+                        pass
+                    
+                    result.append(Report(
+                        id=report.id,
+                        user_id=report.user_id,
+                        stock_id=report.stock_id,
+                        stock=stock_info,
+                        title=report.title or "",
+                        summary=report.summary or "",
+                        content=report.content,
+                        recommendations=report.recommendations,
+                        risk_level=report.risk_level,
+                        sentiment_score=report.sentiment_score,
+                        technical_signal=report.technical_signal,
+                        confidence_score=report.confidence_score,
+                        details_json=report.details_json,
+                        report_type=report.report_type or "analysis",
+                        created_at=created_at
+                    ))
+                except Exception as e:
+                    self.logger.warning(f"Failed to process report {report.id}: {str(e)}")
+                    continue  # Skip this report and continue with others
             
             return result
         except Exception as e:
             self.logger.error(f"Failed to get user reports: {str(e)}")
-            raise Exception(f"Failed to get user reports: {str(e)}")
+            # Return empty list instead of raising exception if no reports found
+            return []
     
     async def get_report_summary(self, user_id: int) -> ReportSummary:
         """

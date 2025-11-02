@@ -33,9 +33,15 @@ class UserInDB(UserBase):
     class Config:
         from_attributes = True
 
-class User(UserInDB):
-    """Schema for user response"""
-    pass
+class User(UserBase):
+    """Schema for user response (API response)"""
+    id: int
+    is_active: bool  # Converted from "Y"/"N" string to boolean
+    created_at: datetime
+    last_login: Optional[datetime] = None
+    
+    class Config:
+        from_attributes = True
 
 class UserLogin(BaseModel):
     """Schema for user login"""

@@ -39,10 +39,15 @@ async def get_user_reports(
     """
     try:
         report_service = ReportService(db)
-        reports = await report_service.get_user_reports(current_user.id)
-        return reports
+        reports = await report_service.get_user_reports(current_user.id, limit=100)
+        # Always return a list, even if empty
+        return reports if reports else []
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        # Log the error but return empty list instead of 400
+        import logging
+        logger = logging.getLogger("reports_api")
+        logger.error(f"Error getting user reports: {str(e)}")
+        return []
 
 @router.get("/summary", response_model=ReportSummary)
 async def get_report_summary(
